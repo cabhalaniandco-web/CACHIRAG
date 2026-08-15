@@ -106,21 +106,24 @@
 ;;=============================================================================
 
 [System: Formula]
-    GSTR2BIsPurcVT : $Parent = "Purchase"
-    GSTR2BIsDrVT   : $Parent = "Debit Note"
-    GSTR2BIsCrVT   : $Parent = "Credit Note"
+    GSTR2BIsPurcVT : $Parent = "Purchase" OR $Name = "Purchase"
+    GSTR2BIsDrVT   : $Parent = "Debit Note" OR $Name = "Debit Note"
+    GSTR2BIsCrVT   : $Parent = "Credit Note" OR $Name = "Credit Note"
 
-;; ---- Voucher-type dropdowns ----
+;; ---- Voucher-type dropdowns (Fetch Name so the table has a display value) ----
 [Collection: GSTR2B PurcVchTypes]
     Type   : VoucherType
+    Fetch  : Name
     Filter : GSTR2BIsPurcVT
 
 [Collection: GSTR2B DrNoteVchTypes]
     Type   : VoucherType
+    Fetch  : Name
     Filter : GSTR2BIsDrVT
 
 [Collection: GSTR2B CrNoteVchTypes]
     Type   : VoucherType
+    Fetch  : Name
     Filter : GSTR2BIsCrVT
 
 ;; ---- Ledger group sources (Belongs To : Yes includes sub-groups) ----
@@ -128,18 +131,22 @@
     Type       : Ledger
     Child Of   : "Purchase Accounts"
     Belongs To : Yes
+    Fetch      : Name
 [Collection: GSTR2B Led DirExp]
     Type       : Ledger
     Child Of   : "Direct Expenses"
     Belongs To : Yes
+    Fetch      : Name
 [Collection: GSTR2B Led IndExp]
     Type       : Ledger
     Child Of   : "Indirect Expenses"
     Belongs To : Yes
+    Fetch      : Name
 [Collection: GSTR2B Led IndInc]
     Type       : Ledger
     Child Of   : "Indirect Incomes"
     Belongs To : Yes
+    Fetch      : Name
 
 ;; Purchase ledger dropdown = Purchase Accounts + Direct Exp + Indirect Exp
 [Collection: GSTR2B PurcLedgers]
@@ -150,6 +157,7 @@
     Type       : Ledger
     Child Of   : "Duties & Taxes"
     Belongs To : Yes
+    Fetch      : Name
 
 ;; Round-off ledger dropdown = Indirect Expenses + Indirect Incomes
 [Collection: GSTR2B RoundOffLedgers]
