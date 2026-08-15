@@ -209,7 +209,7 @@
     Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase Voucher Type"
 [Field: GSTR2B F VchType]
     Use : Name Field
-    Table : GSTR2B PurcVchTypes
+    Table : GSTR2B PurcVchTypes, Not Applicable
     Show Table : Always
     Width : 30
     Modifies : GSTR2BImpVchType
@@ -220,7 +220,7 @@
     Local  : Field : GSTR2B Cfg Prompt : Set as : "Dr. Note Voucher Type"
 [Field: GSTR2B F DrNote]
     Use : Name Field
-    Table : GSTR2B DrNoteVchTypes
+    Table : GSTR2B DrNoteVchTypes, Not Applicable
     Show Table : Always
     Width : 30
     Modifies : GSTR2BImpDrNoteVT
@@ -231,7 +231,7 @@
     Local  : Field : GSTR2B Cfg Prompt : Set as : "Cr. Note Voucher Type"
 [Field: GSTR2B F CrNote]
     Use : Name Field
-    Table : GSTR2B CrNoteVchTypes
+    Table : GSTR2B CrNoteVchTypes, Not Applicable
     Show Table : Always
     Width : 30
     Modifies : GSTR2BImpCrNoteVT
@@ -256,7 +256,7 @@
     Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase Exempted Ledger"
 [Field: GSTR2B F Exempt]
     Use : Name Field
-    Table : GSTR2B PurcLedgers
+    Table : GSTR2B PurcLedgers, Not Applicable
     Show Table : Always
     Width : 30
     Modifies : GSTR2BImpExemptLed
@@ -267,7 +267,7 @@
     Local  : Field : GSTR2B Cfg Prompt : Set as : "GST Purchase 3%"
 [Field: GSTR2B F Purc3]
     Use : Name Field
-    Table : GSTR2B PurcLedgers
+    Table : GSTR2B PurcLedgers, Not Applicable
     Show Table : Always
     Width : 30
     Modifies : GSTR2BImpPurc3
@@ -278,7 +278,7 @@
     Local  : Field : GSTR2B Cfg Prompt : Set as : "GST Purchase 5%"
 [Field: GSTR2B F Purc5]
     Use : Name Field
-    Table : GSTR2B PurcLedgers
+    Table : GSTR2B PurcLedgers, Not Applicable
     Show Table : Always
     Width : 30
     Modifies : GSTR2BImpPurc5
@@ -289,7 +289,7 @@
     Local  : Field : GSTR2B Cfg Prompt : Set as : "GST Purchase 12%"
 [Field: GSTR2B F Purc12]
     Use : Name Field
-    Table : GSTR2B PurcLedgers
+    Table : GSTR2B PurcLedgers, Not Applicable
     Show Table : Always
     Width : 30
     Modifies : GSTR2BImpPurc12
@@ -300,7 +300,7 @@
     Local  : Field : GSTR2B Cfg Prompt : Set as : "GST Purchase 18%"
 [Field: GSTR2B F Purc18]
     Use : Name Field
-    Table : GSTR2B PurcLedgers
+    Table : GSTR2B PurcLedgers, Not Applicable
     Show Table : Always
     Width : 30
     Modifies : GSTR2BImpPurc18
@@ -311,7 +311,7 @@
     Local  : Field : GSTR2B Cfg Prompt : Set as : "GST Purchase 28%"
 [Field: GSTR2B F Purc28]
     Use : Name Field
-    Table : GSTR2B PurcLedgers
+    Table : GSTR2B PurcLedgers, Not Applicable
     Show Table : Always
     Width : 30
     Modifies : GSTR2BImpPurc28
@@ -327,7 +327,7 @@
     Local  : Field : GSTR2B Cfg Prompt : Set as : "CGST Ledger"
 [Field: GSTR2B F CGST]
     Use : Name Field
-    Table : GSTR2B DutiesLedgers
+    Table : GSTR2B DutiesLedgers, Not Applicable
     Show Table : Always
     Width : 30
     Modifies : GSTR2BImpCGST
@@ -338,7 +338,7 @@
     Local  : Field : GSTR2B Cfg Prompt : Set as : "SGST Ledger"
 [Field: GSTR2B F SGST]
     Use : Name Field
-    Table : GSTR2B DutiesLedgers
+    Table : GSTR2B DutiesLedgers, Not Applicable
     Show Table : Always
     Width : 30
     Modifies : GSTR2BImpSGST
@@ -349,7 +349,7 @@
     Local  : Field : GSTR2B Cfg Prompt : Set as : "IGST Ledger"
 [Field: GSTR2B F IGST]
     Use : Name Field
-    Table : GSTR2B DutiesLedgers
+    Table : GSTR2B DutiesLedgers, Not Applicable
     Show Table : Always
     Width : 30
     Modifies : GSTR2BImpIGST
@@ -360,7 +360,7 @@
     Local  : Field : GSTR2B Cfg Prompt : Set as : "CESS Ledger"
 [Field: GSTR2B F Cess]
     Use : Name Field
-    Table : GSTR2B DutiesLedgers
+    Table : GSTR2B DutiesLedgers, Not Applicable
     Show Table : Always
     Width : 30
     Modifies : GSTR2BImpCessLed
@@ -385,7 +385,7 @@
     Local  : Field : GSTR2B Cfg Prompt : Set as : "Round Off Ledger"
 [Field: GSTR2B F ROLed]
     Use : Name Field
-    Table : GSTR2B RoundOffLedgers
+    Table : GSTR2B RoundOffLedgers, Not Applicable
     Show Table : Always
     Width : 30
     Inactive : NOT ##GSTR2BImpUseRoundOff
