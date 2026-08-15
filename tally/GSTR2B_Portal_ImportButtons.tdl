@@ -32,7 +32,9 @@
 [Button: GSTR2B ImpConfig Btn]
     Key    : Alt+C
     Title  : "Import Configuration"
-    Action : Display : GSTR2B Import Config
+    ;; Alter (not Display) opens the report in EDIT mode so the fields accept
+    ;; input and the selection tables (dropdowns) pop. Display = read-only.
+    Action : Alter : GSTR2B Import Config
 
 [Button: GSTR2B ImpSelVch Btn]
     Key    : Alt+V
