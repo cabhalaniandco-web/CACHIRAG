@@ -72,13 +72,22 @@
 
 
 ;;=============================================================================
-;;  STEP 3 - Persistent configuration variables used by the importer.
+;;  STEP 3 - Configuration variables used by the importer.
+;;  Each variable needs its own [Variable: ...] "description" (Type + Default);
+;;  without it Tally reports "Could not find description!".
 ;;=============================================================================
 
-[System: Variable]
-    GSTR2BImpVchType    : "Purchase"     ;; Voucher Type to create
-    GSTR2BImpPurcLedger : ""             ;; Default purchase (expense) ledger
-    GSTR2BImpAutoCreate : Yes            ;; Auto-create missing masters?
+[Variable: GSTR2BImpVchType]
+    Type    : String
+    Default : "Purchase"                 ;; Voucher Type to create
+
+[Variable: GSTR2BImpPurcLedger]
+    Type    : String
+    Default : ""                         ;; Default purchase (expense) ledger
+
+[Variable: GSTR2BImpAutoCreate]
+    Type    : Logical
+    Default : Yes                        ;; Auto-create missing masters?
 
 
 ;;=============================================================================
