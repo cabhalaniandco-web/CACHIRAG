@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CACHIRAG</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #1e293b;
+        --panel-2: #273449;
+        --accent: #38bdf8;
+        --accent-2: #a78bfa;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --hit: #34d399;
+        --miss: #fbbf24;
+        --border: #334155;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: radial-gradient(1200px 600px at 20% -10%, #1e293b 0%, var(--bg) 60%);
+        color: var(--text);
+        min-height: 100vh;
+      }
+      header {
+        padding: 28px 32px 8px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        letter-spacing: 1px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .subtitle { color: var(--muted); margin-top: 4px; font-size: 14px; }
+      main {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        padding: 20px 32px 40px;
+        max-width: 1100px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px;
+      }
+      h2 { margin: 0 0 14px; font-size: 16px; color: var(--accent); }
+      label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+      input, textarea {
+        width: 100%;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 14px;
+        font-family: inherit;
+      }
+      textarea { resize: vertical; min-height: 70px; }
+      button {
+        margin-top: 14px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        color: #0b1220;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      button:hover { opacity: 0.92; }
+      .row { display: flex; gap: 20px; flex-wrap: wrap; }
+      .stat {
+        flex: 1;
+        min-width: 90px;
+        background: var(--panel-2);
+        border-radius: 10px;
+        padding: 12px;
+        text-align: center;
+      }
+      .stat .value { font-size: 22px; font-weight: 700; }
+      .stat .name { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+      .answer { white-space: pre-wrap; line-height: 1.5; font-size: 14px; }
+      .badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        margin-left: 8px;
+      }
+      .badge.hit { background: rgba(52, 211, 153, 0.15); color: var(--hit); border: 1px solid var(--hit); }
+      .badge.miss { background: rgba(251, 191, 36, 0.15); color: var(--miss); border: 1px solid var(--miss); }
+      .passage {
+        background: var(--panel-2);
+        border-left: 3px solid var(--accent-2);
+        border-radius: 6px;
+        padding: 10px 12px;
+        margin-top: 10px;
+        font-size: 13px;
+      }
+      .passage .meta { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+      .note { color: var(--muted); font-size: 12px; margin-top: 8px; }
+      .full { grid-column: 1 / -1; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>CACHIRAG</h1>
+      <div class="subtitle">Cache-augmented Retrieval-Augmented Generation &mdash; fully offline demo</div>
+    </header>
+    <main>
+      <section class="card">
+        <h2>Ask a question</h2>
+        <label for="query">Query</label>
+        <input id="query" value="What is cache-augmented RAG?" />
+        <button id="ask">Ask</button>
+        <div class="note">Ask the same question twice to watch it become a cache HIT.</div>
+        <div id="result" style="margin-top:16px;"></div>
+      </section>
+
+      <section class="card">
+        <h2>Add a document</h2>
+        <label for="doc-id">Document ID</label>
+        <input id="doc-id" placeholder="my-doc" />
+        <label for="doc-text">Text</label>
+        <textarea id="doc-text" placeholder="Document body to index..."></textarea>
+        <button id="add-doc">Add document</button>
+        <div id="doc-result" class="note"></div>
+      </section>
+
+      <section class="card full">
+        <h2>Cache statistics</h2>
+        <div class="row">
+          <div class="stat"><div class="value" id="s-hits">0</div><div class="name">Hits</div></div>
+          <div class="stat"><div class="value" id="s-misses">0</div><div class="name">Misses</div></div>
+          <div class="stat"><div class="value" id="s-rate">0%</div><div class="name">Hit rate</div></div>
+          <div class="stat"><div class="value" id="s-size">0</div><div class="name">Cached</div></div>
+          <div class="stat"><div class="value" id="s-corpus">0</div><div class="name">Corpus</div></div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      async function refreshStats() {
+        const [stats, health] = await Promise.all([
+          fetch("/cache/stats").then((r) => r.json()),
+          fetch("/health").then((r) => r.json()),
+        ]);
+        document.getElementById("s-hits").textContent = stats.hits;
+        document.getElementById("s-misses").textContent = stats.misses;
+        document.getElementById("s-rate").textContent = Math.round(stats.hit_rate * 100) + "%";
+        document.getElementById("s-size").textContent = stats.size;
+        document.getElementById("s-corpus").textContent = health.corpus_size;
+      }
+
+      async function ask() {
+        const query = document.getElementById("query").value.trim();
+        if (!query) return;
+        const res = await fetch("/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query }),
+        });
+        const data = await res.json();
+        const badge = data.cached
+          ? '<span class="badge hit">CACHE HIT</span>'
+          : '<span class="badge miss">CACHE MISS</span>';
+        const passages = (data.passages || [])
+          .map(
+            (p) =>
+              `<div class="passage"><div class="meta">${p.id} &middot; score ${p.score}</div>${p.text}</div>`
+          )
+          .join("");
+        document.getElementById("result").innerHTML =
+          `<div><strong>Answer</strong>${badge}` +
+          `<span class="note"> (${data.elapsed_ms} ms)</span></div>` +
+          `<div class="answer" style="margin-top:8px;">${data.answer}</div>` +
+          `<div style="margin-top:12px;"><strong>Retrieved passages</strong></div>${passages}`;
+        refreshStats();
+      }
+
+      async function addDoc() {
+        const id = document.getElementById("doc-id").value.trim();
+        const text = document.getElementById("doc-text").value.trim();
+        const out = document.getElementById("doc-result");
+        if (!id || !text) {
+          out.textContent = "Both ID and text are required.";
+          return;
+        }
+        const res = await fetch("/documents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documents: [{ id, text }] }),
+        });
+        const data = await res.json();
+        out.textContent = `Added. Corpus now has ${data.corpus_size} documents (cache cleared).`;
+        document.getElementById("doc-id").value = "";
+        document.getElementById("doc-text").value = "";
+        refreshStats();
+      }
+
+      document.getElementById("ask").addEventListener("click", ask);
+      document.getElementById("add-doc").addEventListener("click", addDoc);
+      refreshStats();
+    </script>
+  </body>
+</html>
