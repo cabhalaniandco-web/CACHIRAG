@@ -88,16 +88,14 @@
 ;;=============================================================================
 
 [Report: GSTR2B Import Config]
-    Form : GSTR2B Import Config
+    Form  : GSTR2B Import Config
+    Title : "GSTR-2B Import Configuration"
 
 [Form: GSTR2B Import Config]
-    Parts      : GSTR2B Import Config
-    Width      : 55% Screen
-    Height     : 28% Screen
-    Space Top  : 5
-    Space Left : 8
-    Title      : "GSTR-2B Import Configuration"
-    Local      : Field : Default : Border : Thin Box
+    Parts  : GSTR2B Import Config
+    Width  : 55% Screen
+    Height : 28% Screen
+    Local  : Field : Default : Border : Thin Box
 
 [Part: GSTR2B Import Config]
     Lines : GSTR2B Cfg VchType, GSTR2B Cfg Ledger, GSTR2B Cfg AutoCreate
@@ -148,7 +146,7 @@
 
 [Function: GSTR2B Import Selected Vouchers]
 
-    Variable : SelCount : Number : 0
+    Variable : SelCount : Number
 
     ;; Number of rows marked with the Spacebar in the report.
     01 : SET : SelCount : $$SelectedLines
