@@ -8,6 +8,9 @@
 ;;  Purchase ledgers are rate-wise (3/5/12/18/28%); GST ledgers are single
 ;;  (CGST / SGST / IGST / CESS).
 ;;
+;;  The configuration is stored on the COMPANY (UDFs), so it persists across
+;;  screen re-opens and Tally sessions.
+;;
 ;;  Language : Tally Definition Language (TDL)   |   Product : TallyPrime
 ;;
 ;;  LOAD: F1 (Help) > TDL & Add-On > F4 (Manage Local TDLs) >
@@ -32,8 +35,8 @@
 [Button: GSTR2B ImpConfig Btn]
     Key    : Alt+C
     Title  : "Import Configuration"
-    ;; Alter (not Display) opens the report in EDIT mode so the fields accept
-    ;; input and the selection tables (dropdowns) pop. Display = read-only.
+    ;; Alter (edit mode) on the Company report so fields accept input, dropdowns
+    ;; pop, and Ctrl+A saves the UDFs onto the company.
     Action : Alter : GSTR2B Import Config
 
 [Button: GSTR2B ImpSelVch Btn]
@@ -43,64 +46,27 @@
 
 
 ;;=============================================================================
-;;  STEP 3 - Configuration variables (each needs a [Variable:] description).
+;;  STEP 3 - Configuration storage (UDFs on the Company object).
+;;  Developer UDF index range 20001-59999 is used.
 ;;=============================================================================
 
-;; -- Voucher types + GST toggle --
-[Variable: GSTR2BImpVchType]
-    Type : String
-    Default : "Purchase"
-[Variable: GSTR2BImpDrNoteVT]
-    Type : String
-    Default : ""
-[Variable: GSTR2BImpCrNoteVT]
-    Type : String
-    Default : ""
-[Variable: GSTR2BImpGSTPerWise]
-    Type : Logical
-    Default : No
-
-;; -- Purchase ledgers (rate-wise) --
-[Variable: GSTR2BImpExemptLed]
-    Type : String
-    Default : "PURCHASE EXEMPT"
-[Variable: GSTR2BImpPurc3]
-    Type : String
-    Default : "PURCHASE 3%"
-[Variable: GSTR2BImpPurc5]
-    Type : String
-    Default : "PURCHASE 5%"
-[Variable: GSTR2BImpPurc12]
-    Type : String
-    Default : "PURCHASE 12%"
-[Variable: GSTR2BImpPurc18]
-    Type : String
-    Default : "PURCHASE 18%"
-[Variable: GSTR2BImpPurc28]
-    Type : String
-    Default : "PURCHASE 28%"
-
-;; -- GST ledgers (single, not rate-wise) --
-[Variable: GSTR2BImpCGST]
-    Type : String
-    Default : ""
-[Variable: GSTR2BImpSGST]
-    Type : String
-    Default : ""
-[Variable: GSTR2BImpIGST]
-    Type : String
-    Default : ""
-[Variable: GSTR2BImpCessLed]
-    Type : String
-    Default : ""
-
-;; -- Round Off --
-[Variable: GSTR2BImpUseRoundOff]
-    Type : Logical
-    Default : No
-[Variable: GSTR2BImpRoundOffLed]
-    Type : String
-    Default : ""
+[System: UDF]
+    GSTR2BVchTypeUDF : String  : 20001
+    GSTR2BDrNoteUDF  : String  : 20002
+    GSTR2BCrNoteUDF  : String  : 20003
+    GSTR2BPerWiseUDF : Logical : 20004
+    GSTR2BExemptUDF  : String  : 20005
+    GSTR2BPurc3UDF   : String  : 20006
+    GSTR2BPurc5UDF   : String  : 20007
+    GSTR2BPurc12UDF  : String  : 20008
+    GSTR2BPurc18UDF  : String  : 20009
+    GSTR2BPurc28UDF  : String  : 20010
+    GSTR2BCGSTUDF    : String  : 20011
+    GSTR2BSGSTUDF    : String  : 20012
+    GSTR2BIGSTUDF    : String  : 20013
+    GSTR2BCessUDF    : String  : 20014
+    GSTR2BUseROUDF   : Logical : 20015
+    GSTR2BROLedUDF   : String  : 20016
 
 
 ;;=============================================================================
@@ -167,14 +133,14 @@
 
 
 ;;=============================================================================
-;;  STEP 4 - "Import Configuration" (Purchase Config) screen. Ctrl+A to save.
+;;  STEP 4 - "Import Configuration" (Purchase Config) screen.
+;;  Object : Company + Storage saves each field onto the company (persistent).
+;;  Ctrl+A to save.
 ;;=============================================================================
 
 [Report: GSTR2B Import Config]
     Form   : GSTR2B Import Config
     Title  : "GSTR-2B Purchase Configuration"
-    ;; Alter needs an object context. Associate the current Company; the fields
-    ;; write to variables (Modifies), not Storage, so nothing is saved onto it.
     Object : Company
 
 [Form: GSTR2B Import Config]
@@ -212,8 +178,8 @@
     Table : GSTR2B PurcVchTypes, Not Applicable
     Show Table : Always
     Width : 30
-    Modifies : GSTR2BImpVchType
-    Set as : ##GSTR2BImpVchType
+    Storage : GSTR2BVchTypeUDF
+    Set as : if $$IsEmpty:$GSTR2BVchTypeUDF then "Purchase" else $GSTR2BVchTypeUDF
 
 [Line: GSTR2B L DrNote]
     Fields : GSTR2B Cfg Prompt, GSTR2B F DrNote
@@ -223,8 +189,8 @@
     Table : GSTR2B DrNoteVchTypes, Not Applicable
     Show Table : Always
     Width : 30
-    Modifies : GSTR2BImpDrNoteVT
-    Set as : ##GSTR2BImpDrNoteVT
+    Storage : GSTR2BDrNoteUDF
+    Set as : $GSTR2BDrNoteUDF
 
 [Line: GSTR2B L CrNote]
     Fields : GSTR2B Cfg Prompt, GSTR2B F CrNote
@@ -234,8 +200,8 @@
     Table : GSTR2B CrNoteVchTypes, Not Applicable
     Show Table : Always
     Width : 30
-    Modifies : GSTR2BImpCrNoteVT
-    Set as : ##GSTR2BImpCrNoteVT
+    Storage : GSTR2BCrNoteUDF
+    Set as : $GSTR2BCrNoteUDF
 
 [Line: GSTR2B L PerWise]
     Fields : GSTR2B Cfg Prompt, GSTR2B F PerWise
@@ -243,8 +209,8 @@
 [Field: GSTR2B F PerWise]
     Use : Logical Field
     Width : 30
-    Modifies : GSTR2BImpGSTPerWise
-    Set as : ##GSTR2BImpGSTPerWise
+    Storage : GSTR2BPerWiseUDF
+    Set as : $GSTR2BPerWiseUDF
 
 ;; =================== Purchase Ledgers (rate-wise) ===================
 [Line: GSTR2B H Ledgers]
@@ -259,8 +225,8 @@
     Table : GSTR2B PurcLedgers, Not Applicable
     Show Table : Always
     Width : 30
-    Modifies : GSTR2BImpExemptLed
-    Set as : ##GSTR2BImpExemptLed
+    Storage : GSTR2BExemptUDF
+    Set as : if $$IsEmpty:$GSTR2BExemptUDF then "PURCHASE EXEMPT" else $GSTR2BExemptUDF
 
 [Line: GSTR2B L Purc3]
     Fields : GSTR2B Cfg Prompt, GSTR2B F Purc3
@@ -270,8 +236,8 @@
     Table : GSTR2B PurcLedgers, Not Applicable
     Show Table : Always
     Width : 30
-    Modifies : GSTR2BImpPurc3
-    Set as : ##GSTR2BImpPurc3
+    Storage : GSTR2BPurc3UDF
+    Set as : if $$IsEmpty:$GSTR2BPurc3UDF then "PURCHASE 3%" else $GSTR2BPurc3UDF
 
 [Line: GSTR2B L Purc5]
     Fields : GSTR2B Cfg Prompt, GSTR2B F Purc5
@@ -281,8 +247,8 @@
     Table : GSTR2B PurcLedgers, Not Applicable
     Show Table : Always
     Width : 30
-    Modifies : GSTR2BImpPurc5
-    Set as : ##GSTR2BImpPurc5
+    Storage : GSTR2BPurc5UDF
+    Set as : if $$IsEmpty:$GSTR2BPurc5UDF then "PURCHASE 5%" else $GSTR2BPurc5UDF
 
 [Line: GSTR2B L Purc12]
     Fields : GSTR2B Cfg Prompt, GSTR2B F Purc12
@@ -292,8 +258,8 @@
     Table : GSTR2B PurcLedgers, Not Applicable
     Show Table : Always
     Width : 30
-    Modifies : GSTR2BImpPurc12
-    Set as : ##GSTR2BImpPurc12
+    Storage : GSTR2BPurc12UDF
+    Set as : if $$IsEmpty:$GSTR2BPurc12UDF then "PURCHASE 12%" else $GSTR2BPurc12UDF
 
 [Line: GSTR2B L Purc18]
     Fields : GSTR2B Cfg Prompt, GSTR2B F Purc18
@@ -303,8 +269,8 @@
     Table : GSTR2B PurcLedgers, Not Applicable
     Show Table : Always
     Width : 30
-    Modifies : GSTR2BImpPurc18
-    Set as : ##GSTR2BImpPurc18
+    Storage : GSTR2BPurc18UDF
+    Set as : if $$IsEmpty:$GSTR2BPurc18UDF then "PURCHASE 18%" else $GSTR2BPurc18UDF
 
 [Line: GSTR2B L Purc28]
     Fields : GSTR2B Cfg Prompt, GSTR2B F Purc28
@@ -314,8 +280,8 @@
     Table : GSTR2B PurcLedgers, Not Applicable
     Show Table : Always
     Width : 30
-    Modifies : GSTR2BImpPurc28
-    Set as : ##GSTR2BImpPurc28
+    Storage : GSTR2BPurc28UDF
+    Set as : if $$IsEmpty:$GSTR2BPurc28UDF then "PURCHASE 28%" else $GSTR2BPurc28UDF
 
 ;; =================== GST Ledgers (single) ===================
 [Line: GSTR2B H GST]
@@ -330,8 +296,8 @@
     Table : GSTR2B DutiesLedgers, Not Applicable
     Show Table : Always
     Width : 30
-    Modifies : GSTR2BImpCGST
-    Set as : ##GSTR2BImpCGST
+    Storage : GSTR2BCGSTUDF
+    Set as : $GSTR2BCGSTUDF
 
 [Line: GSTR2B L SGST]
     Fields : GSTR2B Cfg Prompt, GSTR2B F SGST
@@ -341,8 +307,8 @@
     Table : GSTR2B DutiesLedgers, Not Applicable
     Show Table : Always
     Width : 30
-    Modifies : GSTR2BImpSGST
-    Set as : ##GSTR2BImpSGST
+    Storage : GSTR2BSGSTUDF
+    Set as : $GSTR2BSGSTUDF
 
 [Line: GSTR2B L IGST]
     Fields : GSTR2B Cfg Prompt, GSTR2B F IGST
@@ -352,8 +318,8 @@
     Table : GSTR2B DutiesLedgers, Not Applicable
     Show Table : Always
     Width : 30
-    Modifies : GSTR2BImpIGST
-    Set as : ##GSTR2BImpIGST
+    Storage : GSTR2BIGSTUDF
+    Set as : $GSTR2BIGSTUDF
 
 [Line: GSTR2B L Cess]
     Fields : GSTR2B Cfg Prompt, GSTR2B F Cess
@@ -363,8 +329,8 @@
     Table : GSTR2B DutiesLedgers, Not Applicable
     Show Table : Always
     Width : 30
-    Modifies : GSTR2BImpCessLed
-    Set as : ##GSTR2BImpCessLed
+    Storage : GSTR2BCessUDF
+    Set as : $GSTR2BCessUDF
 
 ;; =================== Other ===================
 [Line: GSTR2B H Other]
@@ -377,8 +343,8 @@
 [Field: GSTR2B F UseRO]
     Use : Logical Field
     Width : 30
-    Modifies : GSTR2BImpUseRoundOff
-    Set as : ##GSTR2BImpUseRoundOff
+    Storage : GSTR2BUseROUDF
+    Set as : $GSTR2BUseROUDF
 
 [Line: GSTR2B L RoundOffLed]
     Fields : GSTR2B Cfg Prompt, GSTR2B F ROLed
@@ -388,29 +354,18 @@
     Table : GSTR2B RoundOffLedgers, Not Applicable
     Show Table : Always
     Width : 30
-    Inactive : NOT ##GSTR2BImpUseRoundOff
-    Modifies : GSTR2BImpRoundOffLed
-    Set as : ##GSTR2BImpRoundOffLed
+    Storage : GSTR2BROLedUDF
+    Set as : $GSTR2BROLedUDF
 
 
 ;;=============================================================================
-;;  STEP 5 - "Import Selected Vouchers"
+;;  STEP 5 - "Import Selected Vouchers"  (DRY RUN - no posting yet)
 ;;
-;;  SAFETY: This is currently a DRY RUN. It reads the values from the rows you
-;;  selected (Spacebar) and shows them - it does NOT post any voucher yet. Once
-;;  you confirm the values read correctly, we switch on the actual posting.
-;;
-;;  The row values are read using the METHODS below. The Developer-Mode tooltips
-;;  gave us the FIELD names; the methods usually match minus the prefix. If any
-;;  value shows blank in the preview, tell me which one and I'll correct that
-;;  method name.
-;;    Field 'GSTR VchParticulars'    -> method  $PartyLedgerName   (party)
-;;    Field 'GSTR DocumentNo'        -> method  $DocumentNo
-;;    Field 'GSTR DocumentDate'      -> method  $DocumentDate
-;;    Field 'GSTR Fetch TaxableAmount' -> method $TaxableAmount
-;;    Field 'GSTR Fetch CGSTAmount'  -> method  $CGSTAmount
-;;    Field 'GSTR Fetch SGSTAmount'  -> method  $SGSTAmount
-;;    Field 'GSTR Fetch IGSTAmount'  -> method  $IGSTAmount
+;;  Config is read back from the company UDFs. Row values are read with the
+;;  METHODS below (from the Developer-Mode field names). If a value shows blank
+;;  in the preview, tell me which and I'll fix that method name:
+;;    party -> $PartyLedgerName  docno -> $DocumentNo  docdate -> $DocumentDate
+;;    taxable -> $TaxableAmount  cgst -> $CGSTAmount  sgst -> $SGSTAmount  igst -> $IGSTAmount
 ;;=============================================================================
 
 ;; Objects the user selected (Spacebar) on the current report.
@@ -424,22 +379,24 @@
     Variable : SelCount : Number
     Variable : vRow     : Number
     Variable : vMsg     : String
+    Variable : vVchType : String
 
     01 : SET : SelCount : $$NumItems:GSTR2BSelectedRows
+    02 : SET : vVchType : $GSTR2BVchTypeUDF:Company:##SVCurrentCompany
 
     05 : IF : ##SelCount = 0
     10 :    MSGBOX : "Import Selected Vouchers" : "No rows selected. In the 'Available Only on Portal' list, select one or more rows using the Spacebar, then click 'Import Selected Vouchers'."
     15 :    RETURN
     20 : ENDIF
 
-    25 : IF : $$IsEmpty:##GSTR2BImpVchType
-    30 :    MSGBOX : "Import Selected Vouchers" : "Please set the Purchase Voucher Type first via 'Import Configuration' (Alt+C)."
+    25 : IF : $$IsEmpty:##vVchType
+    30 :    MSGBOX : "Import Selected Vouchers" : "Please set the Purchase Voucher Type first via 'Import Configuration' (Alt+C) and save it with Ctrl+A."
     35 :    RETURN
     40 : ENDIF
 
     ;; ---- DRY RUN preview of the first few selected rows ----
     45 : SET : vRow : 0
-    50 : SET : vMsg : "DRY RUN (no voucher posted). Values read from " + $$String:##SelCount + " selected row(s). First rows:"
+    50 : SET : vMsg : "DRY RUN (no voucher posted). Voucher Type = '" + ##vVchType + "'. Values from " + $$String:##SelCount + " selected row(s):"
     55 : WALK COLLECTION : GSTR2BSelectedRows
     60 :    SET : vRow : ##vRow + 1
     65 :    IF : ##vRow <= 5
