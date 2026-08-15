@@ -394,19 +394,39 @@
 
 
 ;;=============================================================================
-;;  STEP 5 - "Import Selected Vouchers" action.
-;;  Validates the row selection + configuration. Complete the TODO block to
-;;  actually post vouchers (needs the drill-down row object field names).
+;;  STEP 5 - "Import Selected Vouchers"
+;;
+;;  SAFETY: This is currently a DRY RUN. It reads the values from the rows you
+;;  selected (Spacebar) and shows them - it does NOT post any voucher yet. Once
+;;  you confirm the values read correctly, we switch on the actual posting.
+;;
+;;  The row values are read using the METHODS below. The Developer-Mode tooltips
+;;  gave us the FIELD names; the methods usually match minus the prefix. If any
+;;  value shows blank in the preview, tell me which one and I'll correct that
+;;  method name.
+;;    Field 'GSTR VchParticulars'    -> method  $PartyLedgerName   (party)
+;;    Field 'GSTR DocumentNo'        -> method  $DocumentNo
+;;    Field 'GSTR DocumentDate'      -> method  $DocumentDate
+;;    Field 'GSTR Fetch TaxableAmount' -> method $TaxableAmount
+;;    Field 'GSTR Fetch CGSTAmount'  -> method  $CGSTAmount
+;;    Field 'GSTR Fetch SGSTAmount'  -> method  $SGSTAmount
+;;    Field 'GSTR Fetch IGSTAmount'  -> method  $IGSTAmount
 ;;=============================================================================
+
+;; Objects the user selected (Spacebar) on the current report.
+[Collection: GSTR2B Selected Rows]
+    Data Source : Report : Selected
 
 [Function: GSTR2B Import Selected Vouchers]
 
     Variable : SelCount : Number
+    Variable : vRow     : Number
+    Variable : vMsg     : String
 
-    01 : SET : SelCount : $$SelectedLines
+    01 : SET : SelCount : $$NumItems:GSTR2B Selected Rows
 
     05 : IF : ##SelCount = 0
-    10 :    MSGBOX : "Import Selected Vouchers" : "No rows selected. In the 'Available Only on Portal' section, select one or more rows using the Spacebar, then click 'Import Selected Vouchers'."
+    10 :    MSGBOX : "Import Selected Vouchers" : "No rows selected. In the 'Available Only on Portal' list, select one or more rows using the Spacebar, then click 'Import Selected Vouchers'."
     15 :    RETURN
     20 : ENDIF
 
@@ -415,9 +435,17 @@
     35 :    RETURN
     40 : ENDIF
 
-    ;; TODO - per-row voucher creation using the rate-wise purchase ledgers and
-    ;; the single CGST/SGST/IGST ledgers configured above.
-    90 : MSGBOX : "Import Selected Vouchers" : "Ready to import " + $$String:##SelCount + " selected voucher(s) using voucher type '" + ##GSTR2BImpVchType + "'."
+    ;; ---- DRY RUN preview of the first few selected rows ----
+    45 : SET : vRow : 0
+    50 : SET : vMsg : "DRY RUN (no voucher posted). Values read from " + $$String:##SelCount + " selected row(s). First rows:"
+    55 : WALK COLLECTION : GSTR2B Selected Rows
+    60 :    SET : vRow : ##vRow + 1
+    65 :    IF : ##vRow <= 5
+    70 :       SET : vMsg : ##vMsg + $$NewLine + $$NewLine + "Row " + $$String:##vRow + " -  Party: " + $PartyLedgerName + "  | Doc No: " + $DocumentNo + "  | Doc Date: " + $$String:$DocumentDate + "  | Taxable: " + $$String:$TaxableAmount + "  | CGST: " + $$String:$CGSTAmount + "  | SGST: " + $$String:$SGSTAmount + "  | IGST: " + $$String:$IGSTAmount
+    75 :    ENDIF
+    80 : END WALK
+
+    85 : MSGBOX : "Import Selected Vouchers (Preview)" : ##vMsg
 
     RETURN
 
