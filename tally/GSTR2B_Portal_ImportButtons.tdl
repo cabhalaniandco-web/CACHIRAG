@@ -1,63 +1,29 @@
 ;;=============================================================================
-;;  GSTR-2B Reconciliation  ->  "Available only on Portal"
+;;  GSTR-2B Reconciliation  ->  "Available Only on Portal"
 ;;  Custom right-panel (button bar) buttons for TallyPrime
 ;;
-;;    Button 1 :  Import Configuration        (Alt+C)
+;;    Button 1 :  Import Configuration        (Alt+C)   -> Purchase Config screen
 ;;    Button 2 :  Import Selected Vouchers     (Alt+V)
 ;;
 ;;  Language : Tally Definition Language (TDL)   |   Product : TallyPrime
-;;=============================================================================
 ;;
-;;  >>> READ THIS FIRST - fixes error "T0008: Could not find the default TDL
-;;      definition of Form: ..." <<<
-;;
-;;  TDL can attach a button to a report ONLY by modifying that report's real,
-;;  existing FORM (the [#Form: <name>] syntax). If the name is not an existing
-;;  form, Tally aborts with T0008. Tally does NOT publish these internal names
-;;  and they change between releases, so you must read the name off YOUR build.
-;;
-;;  HOW TO GET THE EXACT FORM NAME (Developer Mode - 2 minutes):
-;;    1. Close TallyPrime.
-;;    2. Right-click the TallyPrime shortcut > Properties.
-;;    3. In "Target", add a space then  /DevMode  at the end, e.g.
-;;         "C:\Program Files\TallyPrime\tally.exe" /DevMode
-;;    4. Apply > open TallyPrime.
-;;    5. Go to: Gateway of Tally > Display More Reports > Statutory Reports >
-;;       GST Reports > GSTR-2B Reconciliation, and open the
-;;       "Available only on Portal" view.
-;;    6. Move the mouse to an EMPTY area (NOT on a value/field). A tooltip shows
-;;       the current Report/Form name. THAT is the name you need.
-;;
-;;  THEN:
-;;    - Put that name into the [#Form: ...] line in "STEP 1" below, AND
-;;    - remove the leading  ;;  from the three STEP-1 lines to activate them.
-;;  Until you do that, STEP 1 stays commented out so this file loads with NO
-;;  error (the buttons just won't appear yet).
-;;
-;;  HOW TO LOAD:
-;;    F1 (Help) > TDL & Add-On > F4 (Manage Local TDLs) >
-;;    "Load selected TDL files on startup" = Yes > add this file > restart.
+;;  LOAD: F1 (Help) > TDL & Add-On > F4 (Manage Local TDLs) >
+;;        "Load selected TDL files on startup" = Yes > add this file > restart.
 ;;=============================================================================
 
 
 ;;=============================================================================
-;;  STEP 1 - Attach the two buttons to the GSTR-2B form.
-;;  Replace  YOUR REAL FORM NAME HERE  with the name from Developer Mode, then
-;;  delete the leading  ;;  on the three lines below.
+;;  STEP 1 - Attach the two buttons to the GSTR-2B "Available Only on Portal"
+;;  voucher list. Form name 'GSTR Recon DrillDown' confirmed via Developer Mode.
 ;;=============================================================================
 
-;; Form name confirmed via Developer Mode on the "Available Only on Portal"
-;; voucher list (Gateway > ... > GSTR-2B Reconciliation > Available Only on
-;; Portal). This DrillDown form is shared by the reconciliation voucher lists,
-;; so the buttons appear on those drill-down screens.
 [#Form: GSTR Recon DrillDown]
     Add : Button : GSTR2B ImpConfig Btn
     Add : Button : GSTR2B ImpSelVch Btn
 
 
 ;;=============================================================================
-;;  STEP 2 - Button definitions (these are safe to define even before STEP 1
-;;  is activated; an unattached button simply does nothing).
+;;  STEP 2 - Button definitions
 ;;=============================================================================
 
 [Button: GSTR2B ImpConfig Btn]
@@ -72,85 +38,358 @@
 
 
 ;;=============================================================================
-;;  STEP 3 - Configuration variables used by the importer.
-;;  Each variable needs its own [Variable: ...] "description" (Type + Default);
-;;  without it Tally reports "Could not find description!".
+;;  STEP 3 - Configuration variables (each needs a [Variable:] description).
+;;  Defaults below match the sample Purchase Config; change them on screen and
+;;  save with Ctrl+A. Every value is chosen from existing masters.
 ;;=============================================================================
 
+;; -- Voucher types --
 [Variable: GSTR2BImpVchType]
-    Type    : String
-    Default : "Purchase"                 ;; Voucher Type to create
+    Type : String
+    Default : "Purchase"
+[Variable: GSTR2BImpDrNoteVT]
+    Type : String
+    Default : ""
+[Variable: GSTR2BImpCrNoteVT]
+    Type : String
+    Default : ""
+[Variable: GSTR2BImpGSTEntryPer]
+    Type : String
+    Default : ""
 
-[Variable: GSTR2BImpPurcLedger]
-    Type    : String
-    Default : ""                         ;; Default purchase (expense) ledger
+;; -- Exempt / Cess / Round Off --
+[Variable: GSTR2BImpExemptLed]
+    Type : String
+    Default : "PURCHASE EXEMPT"
+[Variable: GSTR2BImpCessLed]
+    Type : String
+    Default : ""
+[Variable: GSTR2BImpUseRoundOff]
+    Type : Logical
+    Default : No
+[Variable: GSTR2BImpRoundOffLed]
+    Type : String
+    Default : ""
 
-[Variable: GSTR2BImpAutoCreate]
-    Type    : Logical
-    Default : Yes                        ;; Auto-create missing masters?
+;; -- 3% --
+[Variable: GSTR2BImpPurc3]
+    Type : String
+    Default : ""
+[Variable: GSTR2BImpCGST3]
+    Type : String
+    Default : "INPUT CGST 1.5%"
+[Variable: GSTR2BImpSGST3]
+    Type : String
+    Default : "INPUT SGST 1.5%"
+[Variable: GSTR2BImpIGST3]
+    Type : String
+    Default : "INPUT IGST 3%"
+
+;; -- 5% --
+[Variable: GSTR2BImpPurc5]
+    Type : String
+    Default : ""
+[Variable: GSTR2BImpCGST5]
+    Type : String
+    Default : "INPUT CGST 2.5%"
+[Variable: GSTR2BImpSGST5]
+    Type : String
+    Default : "INPUT SGST 2.5%"
+[Variable: GSTR2BImpIGST5]
+    Type : String
+    Default : "INPUT IGST 5%"
+
+;; -- 12% --
+[Variable: GSTR2BImpPurc12]
+    Type : String
+    Default : ""
+[Variable: GSTR2BImpCGST12]
+    Type : String
+    Default : "INPUT CGST 6%"
+[Variable: GSTR2BImpSGST12]
+    Type : String
+    Default : "INPUT SGST 6%"
+[Variable: GSTR2BImpIGST12]
+    Type : String
+    Default : "INPUT IGST 12%"
+
+;; -- 18% --
+[Variable: GSTR2BImpPurc18]
+    Type : String
+    Default : ""
+[Variable: GSTR2BImpCGST18]
+    Type : String
+    Default : "INPUT CGST 9%"
+[Variable: GSTR2BImpSGST18]
+    Type : String
+    Default : "INPUT SGST 9%"
+[Variable: GSTR2BImpIGST18]
+    Type : String
+    Default : "INPUT IGST 18%"
+
+;; -- 28% --
+[Variable: GSTR2BImpPurc28]
+    Type : String
+    Default : ""
+[Variable: GSTR2BImpCGST28]
+    Type : String
+    Default : "INPUT CGST 14%"
+[Variable: GSTR2BImpSGST28]
+    Type : String
+    Default : "INPUT SGST 14%"
+[Variable: GSTR2BImpIGST28]
+    Type : String
+    Default : "INPUT IGST 28%"
 
 
 ;;=============================================================================
-;;  STEP 4 - "Import Configuration" screen (functional).
-;;  Set the voucher type, default purchase ledger and auto-create flag.
-;;  Press Ctrl+A to save.
+;;  STEP 4 - "Import Configuration" (Purchase Config) screen.
+;;  Ctrl+A to save. Ledgers pick from the Ledger table; voucher types from the
+;;  VoucherType table.
 ;;=============================================================================
 
 [Report: GSTR2B Import Config]
     Form  : GSTR2B Import Config
-    Title : "GSTR-2B Import Configuration"
+    Title : "GSTR-2B Purchase Configuration"
 
 [Form: GSTR2B Import Config]
     Parts  : GSTR2B Import Config
-    Width  : 55% Screen
-    Height : 28% Screen
+    Width  : 60% Screen
+    Height : 85% Screen
     Local  : Field : Default : Border : Thin Box
 
 [Part: GSTR2B Import Config]
-    Lines : GSTR2B Cfg VchType, GSTR2B Cfg Ledger, GSTR2B Cfg AutoCreate
+    Lines  : GSTR2B H VchTypes, GSTR2B L VchType, GSTR2B L DrNote, GSTR2B L CrNote, GSTR2B L EntryPer, GSTR2B H Ledgers, GSTR2B L Exempt, GSTR2B H R3, GSTR2B L Purc3, GSTR2B L CGST3, GSTR2B L SGST3, GSTR2B L IGST3, GSTR2B H R5, GSTR2B L Purc5, GSTR2B L CGST5, GSTR2B L SGST5, GSTR2B L IGST5, GSTR2B H R12, GSTR2B L Purc12, GSTR2B L CGST12, GSTR2B L SGST12, GSTR2B L IGST12, GSTR2B H R18, GSTR2B L Purc18, GSTR2B L CGST18, GSTR2B L SGST18, GSTR2B L IGST18, GSTR2B H R28, GSTR2B L Purc28, GSTR2B L CGST28, GSTR2B L SGST28, GSTR2B L IGST28, GSTR2B H Other, GSTR2B L Cess, GSTR2B L UseRoundOff, GSTR2B L RoundOffLed
+    Scroll : Vertical
 
-[Line: GSTR2B Cfg VchType]
-    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg VchType Fld
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase Voucher Type"
-
-[Line: GSTR2B Cfg Ledger]
-    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Ledger Fld
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "Default Purchase Ledger"
-
-[Line: GSTR2B Cfg AutoCreate]
-    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg AutoCreate Fld
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "Auto-create missing masters"
-
+;; ---- reusable label fields ----
 [Field: GSTR2B Cfg Prompt]
     Set as : ""
-    Width  : 28
+    Width  : 26
+    Skip   : Yes
+
+[Field: GSTR2B Cfg Head]
+    Set as : ""
+    Width  : 40
     Skip   : Yes
     Style  : Normal Bold
 
-[Field: GSTR2B Cfg VchType Fld]
-    Use       : Name Field
-    Table     : VoucherType
-    Show Table: Always
-    Modifies  : GSTR2BImpVchType
-    Set as    : ##GSTR2BImpVchType
+;; ---- reusable input field templates ----
+;; A ledger picker (Table: Ledger). Each line points it at its own variable
+;; using Local overrides, so we only need one physical field definition.
+[Field: GSTR2B Cfg Led]
+    Use        : Name Field
+    Table      : Ledger
+    Show Table : Always
+    Width      : 30
 
-[Field: GSTR2B Cfg Ledger Fld]
-    Use       : Name Field
-    Table     : Ledger
-    Show Table: Always
-    Modifies  : GSTR2BImpPurcLedger
-    Set as    : ##GSTR2BImpPurcLedger
+[Field: GSTR2B Cfg VT]
+    Use        : Name Field
+    Table      : VoucherType
+    Show Table : Always
+    Width      : 30
 
-[Field: GSTR2B Cfg AutoCreate Fld]
+;; =================== Voucher Types ===================
+[Line: GSTR2B H VchTypes]
+    Fields : GSTR2B Cfg Head
+    Local  : Field : GSTR2B Cfg Head : Set as : "Voucher Types"
+
+[Line: GSTR2B L VchType]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg VT
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase Voucher Type"
+    Local  : Field : GSTR2B Cfg VT     : Modifies : GSTR2BImpVchType
+    Local  : Field : GSTR2B Cfg VT     : Set as   : ##GSTR2BImpVchType
+
+[Line: GSTR2B L DrNote]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg VT
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Dr. Note Voucher Type"
+    Local  : Field : GSTR2B Cfg VT     : Modifies : GSTR2BImpDrNoteVT
+    Local  : Field : GSTR2B Cfg VT     : Set as   : ##GSTR2BImpDrNoteVT
+
+[Line: GSTR2B L CrNote]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg VT
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Cr. Note Voucher Type"
+    Local  : Field : GSTR2B Cfg VT     : Modifies : GSTR2BImpCrNoteVT
+    Local  : Field : GSTR2B Cfg VT     : Set as   : ##GSTR2BImpCrNoteVT
+
+[Line: GSTR2B L EntryPer]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg EntryPer Fld
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Enable GST Tax Entry Per"
+
+[Field: GSTR2B Cfg EntryPer Fld]
+    Use      : Name Field
+    Width    : 30
+    Modifies : GSTR2BImpGSTEntryPer
+    Set as   : ##GSTR2BImpGSTEntryPer
+
+;; =================== Ledgers ===================
+[Line: GSTR2B H Ledgers]
+    Fields : GSTR2B Cfg Head
+    Local  : Field : GSTR2B Cfg Head : Set as : "Ledgers"
+
+[Line: GSTR2B L Exempt]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase Exempted Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpExemptLed
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpExemptLed
+
+;; =================== GST Purchase 3% ===================
+[Line: GSTR2B H R3]
+    Fields : GSTR2B Cfg Head
+    Local  : Field : GSTR2B Cfg Head : Set as : "GST Purchase 3%"
+[Line: GSTR2B L Purc3]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase 3% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpPurc3
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpPurc3
+[Line: GSTR2B L CGST3]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "CGST 3% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpCGST3
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpCGST3
+[Line: GSTR2B L SGST3]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "SGST 3% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpSGST3
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpSGST3
+[Line: GSTR2B L IGST3]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "IGST 3% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpIGST3
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpIGST3
+
+;; =================== GST Purchase 5% ===================
+[Line: GSTR2B H R5]
+    Fields : GSTR2B Cfg Head
+    Local  : Field : GSTR2B Cfg Head : Set as : "GST Purchase 5%"
+[Line: GSTR2B L Purc5]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase 5% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpPurc5
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpPurc5
+[Line: GSTR2B L CGST5]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "CGST 5% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpCGST5
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpCGST5
+[Line: GSTR2B L SGST5]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "SGST 5% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpSGST5
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpSGST5
+[Line: GSTR2B L IGST5]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "IGST 5% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpIGST5
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpIGST5
+
+;; =================== GST Purchase 12% ===================
+[Line: GSTR2B H R12]
+    Fields : GSTR2B Cfg Head
+    Local  : Field : GSTR2B Cfg Head : Set as : "GST Purchase 12%"
+[Line: GSTR2B L Purc12]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase 12% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpPurc12
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpPurc12
+[Line: GSTR2B L CGST12]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "CGST 12% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpCGST12
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpCGST12
+[Line: GSTR2B L SGST12]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "SGST 12% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpSGST12
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpSGST12
+[Line: GSTR2B L IGST12]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "IGST 12% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpIGST12
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpIGST12
+
+;; =================== GST Purchase 18% ===================
+[Line: GSTR2B H R18]
+    Fields : GSTR2B Cfg Head
+    Local  : Field : GSTR2B Cfg Head : Set as : "GST Purchase 18%"
+[Line: GSTR2B L Purc18]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase 18% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpPurc18
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpPurc18
+[Line: GSTR2B L CGST18]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "CGST 18% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpCGST18
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpCGST18
+[Line: GSTR2B L SGST18]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "SGST 18% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpSGST18
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpSGST18
+[Line: GSTR2B L IGST18]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "IGST 18% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpIGST18
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpIGST18
+
+;; =================== GST Purchase 28% ===================
+[Line: GSTR2B H R28]
+    Fields : GSTR2B Cfg Head
+    Local  : Field : GSTR2B Cfg Head : Set as : "GST Purchase 28%"
+[Line: GSTR2B L Purc28]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase 28% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpPurc28
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpPurc28
+[Line: GSTR2B L CGST28]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "CGST 28% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpCGST28
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpCGST28
+[Line: GSTR2B L SGST28]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "SGST 28% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpSGST28
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpSGST28
+[Line: GSTR2B L IGST28]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "IGST 28% Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpIGST28
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpIGST28
+
+;; =================== Other ===================
+[Line: GSTR2B H Other]
+    Fields : GSTR2B Cfg Head
+    Local  : Field : GSTR2B Cfg Head : Set as : "Other"
+
+[Line: GSTR2B L Cess]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "CESS Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpCessLed
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpCessLed
+
+[Line: GSTR2B L UseRoundOff]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg RoundOff Use
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Use Round Off"
+
+[Field: GSTR2B Cfg RoundOff Use]
     Use      : Logical Field
-    Modifies : GSTR2BImpAutoCreate
-    Set as   : ##GSTR2BImpAutoCreate
+    Modifies : GSTR2BImpUseRoundOff
+    Set as   : ##GSTR2BImpUseRoundOff
+
+[Line: GSTR2B L RoundOffLed]
+    Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Led
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Round Off Ledger"
+    Local  : Field : GSTR2B Cfg Led    : Inactive : NOT ##GSTR2BImpUseRoundOff
+    Local  : Field : GSTR2B Cfg Led    : Modifies : GSTR2BImpRoundOffLed
+    Local  : Field : GSTR2B Cfg Led    : Set as   : ##GSTR2BImpRoundOffLed
 
 
 ;;=============================================================================
 ;;  STEP 5 - "Import Selected Vouchers" action.
-;;  Validates the row selection + configuration, then (after you complete the
-;;  creation block) writes one voucher per selected row.
+;;  Validates the row selection + configuration. Complete the TODO block to
+;;  actually post vouchers (needs the drill-down row object field names).
 ;;=============================================================================
 
 [Function: GSTR2B Import Selected Vouchers]
@@ -161,32 +400,34 @@
     01 : SET : SelCount : $$SelectedLines
 
     05 : IF : ##SelCount = 0
-    10 :    MSGBOX : "Import Selected Vouchers" : "No rows selected. In the 'Available only on Portal' section, select one or more rows using the Spacebar, then click 'Import Selected Vouchers'."
+    10 :    MSGBOX : "Import Selected Vouchers" : "No rows selected. In the 'Available Only on Portal' section, select one or more rows using the Spacebar, then click 'Import Selected Vouchers'."
     15 :    RETURN
     20 : ENDIF
 
-    25 : IF : $$IsEmpty:##GSTR2BImpPurcLedger
-    30 :    MSGBOX : "Import Selected Vouchers" : "Please set the Default Purchase Ledger first via 'Import Configuration' (Alt+C)."
+    25 : IF : $$IsEmpty:##GSTR2BImpVchType
+    30 :    MSGBOX : "Import Selected Vouchers" : "Please set the Purchase Voucher Type first via 'Import Configuration' (Alt+C)."
     35 :    RETURN
     40 : ENDIF
 
     ;;-------------------------------------------------------------------------
     ;; TODO - per-row voucher creation.
-    ;; After confirming the GSTR-2B row field names in Developer Mode, iterate
-    ;; the selected rows and create one voucher each, e.g.:
+    ;; For each selected portal invoice, read its rate and pick the matching
+    ;; ledgers from the config variables (##GSTR2BImpCGST3 / ...IGST18 / etc.),
+    ;; then create a Purchase voucher. Confirm the row field names in Developer
+    ;; Mode and complete the block, e.g.:
     ;;
     ;;   50 : NEW OBJECT   : Voucher
-    ;;   55 :    SET VALUE : Date            : <source invoice date field>    ;; TODO
+    ;;   55 :    SET VALUE : Date            : <source invoice date field>   ;; TODO
     ;;   60 :    SET VALUE : VoucherTypeName : ##GSTR2BImpVchType
-    ;;   65 :    SET VALUE : PartyLedgerName : <source supplier field>        ;; TODO
-    ;;   70 :    SET VALUE : Reference       : <source invoice-no field>      ;; TODO
-    ;;   75 :    ;; add ledger allocations for taxable value + IGST/CGST/SGST  ;; TODO
+    ;;   65 :    SET VALUE : PartyLedgerName : <source supplier field>       ;; TODO
+    ;;   70 :    SET VALUE : Reference       : <source invoice-no field>     ;; TODO
+    ;;   75 :    ;; ledger allocations: purchase + CGST/SGST/IGST by rate     ;; TODO
     ;;   80 :    SAVE TARGET
     ;;   85 : END NEW OBJECT
     ;;-------------------------------------------------------------------------
 
     ;; Placeholder confirmation so you can verify the button + selection wiring.
-    90 : MSGBOX : "Import Selected Vouchers" : "Ready to import " + $$String:##SelCount + " selected voucher(s) using ledger '" + ##GSTR2BImpPurcLedger + "' and voucher type '" + ##GSTR2BImpVchType + "'."
+    90 : MSGBOX : "Import Selected Vouchers" : "Ready to import " + $$String:##SelCount + " selected voucher(s) using voucher type '" + ##GSTR2BImpVchType + "'."
 
     RETURN
 
