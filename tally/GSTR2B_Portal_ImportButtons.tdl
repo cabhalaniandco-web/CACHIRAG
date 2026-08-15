@@ -179,7 +179,7 @@
     Show Table : Always
     Width : 30
     Storage : GSTR2BVchTypeUDF
-    Set as : if $$IsEmpty:$GSTR2BVchTypeUDF then "Purchase" else $GSTR2BVchTypeUDF
+    Set as : $GSTR2BVchTypeUDF
 
 [Line: GSTR2B L DrNote]
     Fields : GSTR2B Cfg Prompt, GSTR2B F DrNote
@@ -226,7 +226,7 @@
     Show Table : Always
     Width : 30
     Storage : GSTR2BExemptUDF
-    Set as : if $$IsEmpty:$GSTR2BExemptUDF then "PURCHASE EXEMPT" else $GSTR2BExemptUDF
+    Set as : $GSTR2BExemptUDF
 
 [Line: GSTR2B L Purc3]
     Fields : GSTR2B Cfg Prompt, GSTR2B F Purc3
@@ -237,7 +237,7 @@
     Show Table : Always
     Width : 30
     Storage : GSTR2BPurc3UDF
-    Set as : if $$IsEmpty:$GSTR2BPurc3UDF then "PURCHASE 3%" else $GSTR2BPurc3UDF
+    Set as : $GSTR2BPurc3UDF
 
 [Line: GSTR2B L Purc5]
     Fields : GSTR2B Cfg Prompt, GSTR2B F Purc5
@@ -248,7 +248,7 @@
     Show Table : Always
     Width : 30
     Storage : GSTR2BPurc5UDF
-    Set as : if $$IsEmpty:$GSTR2BPurc5UDF then "PURCHASE 5%" else $GSTR2BPurc5UDF
+    Set as : $GSTR2BPurc5UDF
 
 [Line: GSTR2B L Purc12]
     Fields : GSTR2B Cfg Prompt, GSTR2B F Purc12
@@ -259,7 +259,7 @@
     Show Table : Always
     Width : 30
     Storage : GSTR2BPurc12UDF
-    Set as : if $$IsEmpty:$GSTR2BPurc12UDF then "PURCHASE 12%" else $GSTR2BPurc12UDF
+    Set as : $GSTR2BPurc12UDF
 
 [Line: GSTR2B L Purc18]
     Fields : GSTR2B Cfg Prompt, GSTR2B F Purc18
@@ -270,7 +270,7 @@
     Show Table : Always
     Width : 30
     Storage : GSTR2BPurc18UDF
-    Set as : if $$IsEmpty:$GSTR2BPurc18UDF then "PURCHASE 18%" else $GSTR2BPurc18UDF
+    Set as : $GSTR2BPurc18UDF
 
 [Line: GSTR2B L Purc28]
     Fields : GSTR2B Cfg Prompt, GSTR2B F Purc28
@@ -281,7 +281,7 @@
     Show Table : Always
     Width : 30
     Storage : GSTR2BPurc28UDF
-    Set as : if $$IsEmpty:$GSTR2BPurc28UDF then "PURCHASE 28%" else $GSTR2BPurc28UDF
+    Set as : $GSTR2BPurc28UDF
 
 ;; =================== GST Ledgers (single) ===================
 [Line: GSTR2B H GST]
