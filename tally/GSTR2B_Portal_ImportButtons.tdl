@@ -171,8 +171,11 @@
 ;;=============================================================================
 
 [Report: GSTR2B Import Config]
-    Form  : GSTR2B Import Config
-    Title : "GSTR-2B Purchase Configuration"
+    Form   : GSTR2B Import Config
+    Title  : "GSTR-2B Purchase Configuration"
+    ;; Alter needs an object context. Associate the current Company; the fields
+    ;; write to variables (Modifies), not Storage, so nothing is saved onto it.
+    Object : Company
 
 [Form: GSTR2B Import Config]
     Parts  : GSTR2B Import Config
