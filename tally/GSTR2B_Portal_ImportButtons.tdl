@@ -46,9 +46,13 @@
 ;;  delete the leading  ;;  on the three lines below.
 ;;=============================================================================
 
-;; [#Form: YOUR REAL FORM NAME HERE]
-;;     Add : Button : GSTR2B ImpConfig Btn
-;;     Add : Button : GSTR2B ImpSelVch Btn
+;; Form name confirmed via Developer Mode on the "Available Only on Portal"
+;; voucher list (Gateway > ... > GSTR-2B Reconciliation > Available Only on
+;; Portal). This DrillDown form is shared by the reconciliation voucher lists,
+;; so the buttons appear on those drill-down screens.
+[#Form: GSTR Recon DrillDown]
+    Add : Button : GSTR2B ImpConfig Btn
+    Add : Button : GSTR2B ImpSelVch Btn
 
 
 ;;=============================================================================

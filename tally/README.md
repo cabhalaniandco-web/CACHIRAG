@@ -12,7 +12,18 @@ of the **GSTR-2B Reconciliation** report in TallyPrime:
 Path in Tally: `Gateway of Tally → Display More Reports → Statutory Reports →
 GST Reports → GSTR-2B Reconciliation → Available only on Portal`.
 
-## 1. Find the exact Form name (required, one-time)
+## 1. Form name
+
+STEP 1 in the `.tdl` is already set to **`GSTR Recon DrillDown`**, the internal
+form of the GSTR-2B Reconciliation "Available Only on Portal" voucher list
+(confirmed via Developer Mode). Because this DrillDown form is shared by the
+reconciliation voucher lists, the two buttons will also appear on the other
+drill-down voucher screens (e.g. mismatches, available only in books). If a
+future TallyPrime release renames the form and you get
+`T0008: Could not find the default TDL definition of Form: GSTR Recon DrillDown`,
+re-confirm the name with Developer Mode as below and update STEP 1.
+
+### How to re-confirm the Form name (Developer Mode)
 
 TDL attaches buttons to a report by its internal **Form name**, which Tally does
 not publish and which can change between releases. Confirm it on your build using
