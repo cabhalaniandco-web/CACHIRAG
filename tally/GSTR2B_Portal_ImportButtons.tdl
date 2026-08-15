@@ -415,7 +415,7 @@
 
 ;; Objects the user selected (Spacebar) on the current report.
 ;; Client Only : Yes makes it read the current screen's selected lines.
-[Collection: GSTR2B Selected Rows]
+[Collection: GSTR2BSelectedRows]
     Data Source : Report : Selected
     Client Only : Yes
 
@@ -425,7 +425,7 @@
     Variable : vRow     : Number
     Variable : vMsg     : String
 
-    01 : SET : SelCount : $$NumItems:GSTR2B Selected Rows
+    01 : SET : SelCount : $$NumItems:GSTR2BSelectedRows
 
     05 : IF : ##SelCount = 0
     10 :    MSGBOX : "Import Selected Vouchers" : "No rows selected. In the 'Available Only on Portal' list, select one or more rows using the Spacebar, then click 'Import Selected Vouchers'."
@@ -440,7 +440,7 @@
     ;; ---- DRY RUN preview of the first few selected rows ----
     45 : SET : vRow : 0
     50 : SET : vMsg : "DRY RUN (no voucher posted). Values read from " + $$String:##SelCount + " selected row(s). First rows:"
-    55 : WALK COLLECTION : GSTR2B Selected Rows
+    55 : WALK COLLECTION : GSTR2BSelectedRows
     60 :    SET : vRow : ##vRow + 1
     65 :    IF : ##vRow <= 5
     70 :       SET : vMsg : ##vMsg + $$NewLine + $$NewLine + "Row " + $$String:##vRow + " -  Party: " + $PartyLedgerName + "  | Doc No: " + $DocumentNo + "  | Doc Date: " + $$String:$DocumentDate + "  | Taxable: " + $$String:$TaxableAmount + "  | CGST: " + $$String:$CGSTAmount + "  | SGST: " + $$String:$SGSTAmount + "  | IGST: " + $$String:$IGSTAmount
