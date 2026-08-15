@@ -414,8 +414,10 @@
 ;;=============================================================================
 
 ;; Objects the user selected (Spacebar) on the current report.
+;; Client Only : Yes makes it read the current screen's selected lines.
 [Collection: GSTR2B Selected Rows]
     Data Source : Report : Selected
+    Client Only : Yes
 
 [Function: GSTR2B Import Selected Vouchers]
 
