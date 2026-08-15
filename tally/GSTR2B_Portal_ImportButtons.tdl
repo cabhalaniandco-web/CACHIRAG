@@ -5,61 +5,65 @@
 ;;    Button 1 :  Import Configuration        (Alt+C)
 ;;    Button 2 :  Import Selected Vouchers     (Alt+V)
 ;;
-;;  Language : Tally Definition Language (TDL)
-;;  Product  : TallyPrime  (also works on Tally.ERP 9 with minor tweaks)
-;;-----------------------------------------------------------------------------
-;;  WHAT YOU MUST DO BEFORE THIS WORKS
-;;-----------------------------------------------------------------------------
-;;  TDL can only attach a button to a report if it knows that report's exact
-;;  internal FORM name. Tally does not publish these names and they can differ
-;;  between releases, so you must confirm the name on YOUR TallyPrime build and
-;;  put it in the [#Form: ...] line marked "STEP 1" below.
+;;  Language : Tally Definition Language (TDL)   |   Product : TallyPrime
+;;=============================================================================
 ;;
-;;  How to find the exact Form name (official method - Developer Mode):
+;;  >>> READ THIS FIRST - fixes error "T0008: Could not find the default TDL
+;;      definition of Form: ..." <<<
+;;
+;;  TDL can attach a button to a report ONLY by modifying that report's real,
+;;  existing FORM (the [#Form: <name>] syntax). If the name is not an existing
+;;  form, Tally aborts with T0008. Tally does NOT publish these internal names
+;;  and they change between releases, so you must read the name off YOUR build.
+;;
+;;  HOW TO GET THE EXACT FORM NAME (Developer Mode - 2 minutes):
 ;;    1. Close TallyPrime.
 ;;    2. Right-click the TallyPrime shortcut > Properties.
-;;    3. In "Target", append a space then  /DevMode   e.g.
+;;    3. In "Target", add a space then  /DevMode  at the end, e.g.
 ;;         "C:\Program Files\TallyPrime\tally.exe" /DevMode
-;;    4. Apply, then open TallyPrime.
+;;    4. Apply > open TallyPrime.
 ;;    5. Go to: Gateway of Tally > Display More Reports > Statutory Reports >
 ;;       GST Reports > GSTR-2B Reconciliation, and open the
 ;;       "Available only on Portal" view.
-;;    6. Move the mouse to an EMPTY area (not on any field). A tooltip shows the
-;;       current Report/Form name. That is the value to use in STEP 1.
+;;    6. Move the mouse to an EMPTY area (NOT on a value/field). A tooltip shows
+;;       the current Report/Form name. THAT is the name you need.
 ;;
-;;  NOTE: `Add : Button` on a Form name that does not exist is a harmless no-op
-;;  (it simply won't show), so a wrong/placeholder name will not break Tally -
-;;  the buttons just won't appear until the correct name is filled in.
+;;  THEN:
+;;    - Put that name into the [#Form: ...] line in "STEP 1" below, AND
+;;    - remove the leading  ;;  from the three STEP-1 lines to activate them.
+;;  Until you do that, STEP 1 stays commented out so this file loads with NO
+;;  error (the buttons just won't appear yet).
 ;;
-;;  HOW TO LOAD THIS FILE
-;;    TallyPrime : F1 (Help) > TDL & Add-On > (press F4 / "Manage Local TDLs")
-;;                 > set "Load selected TDL files on startup" = Yes
-;;                 > add the full path to this .tdl file > Accept, then restart.
+;;  HOW TO LOAD:
+;;    F1 (Help) > TDL & Add-On > F4 (Manage Local TDLs) >
+;;    "Load selected TDL files on startup" = Yes > add this file > restart.
 ;;=============================================================================
 
 
 ;;=============================================================================
-;;  STEP 1 - Attach the two buttons to the GSTR-2B Reconciliation form.
-;;  >>> Replace the form name below with the one you found in Developer Mode. <<<
+;;  STEP 1 - Attach the two buttons to the GSTR-2B form.
+;;  Replace  YOUR REAL FORM NAME HERE  with the name from Developer Mode, then
+;;  delete the leading  ;;  on the three lines below.
 ;;=============================================================================
 
-[#Form: GSTR2B Recon Portal Only Form]      ;; <-- REPLACE with your real Form name
-    Add : Button : GSTR2B ImpConfig Btn
-    Add : Button : GSTR2B ImpSelVch Btn
+;; [#Form: YOUR REAL FORM NAME HERE]
+;;     Add : Button : GSTR2B ImpConfig Btn
+;;     Add : Button : GSTR2B ImpSelVch Btn
 
 
 ;;=============================================================================
-;;  STEP 2 - Button definitions (these appear in the right-hand button bar).
+;;  STEP 2 - Button definitions (these are safe to define even before STEP 1
+;;  is activated; an unattached button simply does nothing).
 ;;=============================================================================
 
 [Button: GSTR2B ImpConfig Btn]
     Key    : Alt+C
-    Title  : $$LocaleString:"Import Configuration"
+    Title  : "Import Configuration"
     Action : Display : GSTR2B Import Config
 
 [Button: GSTR2B ImpSelVch Btn]
     Key    : Alt+V
-    Title  : $$LocaleString:"Import Selected Vouchers"
+    Title  : "Import Selected Vouchers"
     Action : Call : GSTR2B Import Selected Vouchers
 
 
@@ -70,13 +74,13 @@
 [System: Variable]
     GSTR2BImpVchType    : "Purchase"     ;; Voucher Type to create
     GSTR2BImpPurcLedger : ""             ;; Default purchase (expense) ledger
-    GSTR2BImpAutoCreate : Yes            ;; Auto-create missing parties/ledgers?
+    GSTR2BImpAutoCreate : Yes            ;; Auto-create missing masters?
 
 
 ;;=============================================================================
-;;  STEP 4 - "Import Configuration" screen (fully functional).
-;;  Opens a small form where the user picks the voucher type, default purchase
-;;  ledger and whether to auto-create missing masters. Press Ctrl+A to save.
+;;  STEP 4 - "Import Configuration" screen (functional).
+;;  Set the voucher type, default purchase ledger and auto-create flag.
+;;  Press Ctrl+A to save.
 ;;=============================================================================
 
 [Report: GSTR2B Import Config]
@@ -85,37 +89,33 @@
 [Form: GSTR2B Import Config]
     Parts      : GSTR2B Import Config
     Width      : 55% Screen
-    Height     : 30% Screen
+    Height     : 28% Screen
     Space Top  : 5
     Space Left : 8
-    Title      : $$LocaleString:"GSTR-2B Import Configuration"
+    Title      : "GSTR-2B Import Configuration"
     Local      : Field : Default : Border : Thin Box
 
 [Part: GSTR2B Import Config]
-    Lines       : GSTR2B Cfg VchType, GSTR2B Cfg Ledger, GSTR2B Cfg AutoCreate
-    Break After : $$Line
-    Vertical    : Yes
+    Lines : GSTR2B Cfg VchType, GSTR2B Cfg Ledger, GSTR2B Cfg AutoCreate
 
 [Line: GSTR2B Cfg VchType]
     Fields : GSTR2B Cfg Prompt, GSTR2B Cfg VchType Fld
-    Local  : Field : GSTR2B Cfg Prompt : Set as : $$LocaleString:"Purchase Voucher Type"
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase Voucher Type"
 
 [Line: GSTR2B Cfg Ledger]
     Fields : GSTR2B Cfg Prompt, GSTR2B Cfg Ledger Fld
-    Local  : Field : GSTR2B Cfg Prompt : Set as : $$LocaleString:"Default Purchase Ledger"
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Default Purchase Ledger"
 
 [Line: GSTR2B Cfg AutoCreate]
     Fields : GSTR2B Cfg Prompt, GSTR2B Cfg AutoCreate Fld
-    Local  : Field : GSTR2B Cfg Prompt : Set as : $$LocaleString:"Auto-create missing masters"
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Auto-create missing masters"
 
-;; Prompt (label) field - cursor skips over it.
 [Field: GSTR2B Cfg Prompt]
     Set as : ""
     Width  : 28
     Skip   : Yes
     Style  : Normal Bold
 
-;; Voucher Type input, backed by the default VoucherType table.
 [Field: GSTR2B Cfg VchType Fld]
     Use       : Name Field
     Table     : VoucherType
@@ -123,7 +123,6 @@
     Modifies  : GSTR2BImpVchType
     Set as    : ##GSTR2BImpVchType
 
-;; Default purchase ledger input, backed by the default Ledger table.
 [Field: GSTR2B Cfg Ledger Fld]
     Use       : Name Field
     Table     : Ledger
@@ -131,7 +130,6 @@
     Modifies  : GSTR2BImpPurcLedger
     Set as    : ##GSTR2BImpPurcLedger
 
-;; Yes/No input.
 [Field: GSTR2B Cfg AutoCreate Fld]
     Use      : Logical Field
     Modifies : GSTR2BImpAutoCreate
@@ -140,68 +138,44 @@
 
 ;;=============================================================================
 ;;  STEP 5 - "Import Selected Vouchers" action.
-;;
-;;  This function fires when the button is clicked. It first checks that the
-;;  user has selected one or more rows (Spacebar) in the "Available only on
-;;  Portal" section, reads the saved configuration, then creates a voucher per
-;;  selected row.
-;;
-;;  IMPORTANT: The voucher-creation block is a documented SKELETON. The source
-;;  field names of the GSTR-2B rows (supplier GSTIN, invoice no, date, taxable
-;;  value, IGST/CGST/SGST, etc.) are internal to TallyPrime and vary by release,
-;;  so you must confirm them in Developer Mode (hover each column) and plug them
-;;  into the "SET VALUE" lines marked TODO below.
+;;  Validates the row selection + configuration, then (after you complete the
+;;  creation block) writes one voucher per selected row.
 ;;=============================================================================
 
 [Function: GSTR2B Import Selected Vouchers]
 
-    Variable : SelCount   : Number  : 0
-    Variable : DoneCount  : Number  : 0
+    Variable : SelCount : Number : 0
 
-    ;; $$SelectedLines = number of rows the user marked with the Spacebar.
+    ;; Number of rows marked with the Spacebar in the report.
     01 : SET : SelCount : $$SelectedLines
 
-    ;; ---- Guard: nothing selected ----
     05 : IF : ##SelCount = 0
-    10 :    MSGBOX : $$LocaleString:"Import Selected Vouchers" : $$LocaleString:"No rows are selected. In the 'Available only on Portal' section, select one or more rows using the Spacebar, then click 'Import Selected Vouchers'."
+    10 :    MSGBOX : "Import Selected Vouchers" : "No rows selected. In the 'Available only on Portal' section, select one or more rows using the Spacebar, then click 'Import Selected Vouchers'."
     15 :    RETURN
     20 : ENDIF
 
-    ;; ---- Guard: configuration present ----
     25 : IF : $$IsEmpty:##GSTR2BImpPurcLedger
-    30 :    MSGBOX : $$LocaleString:"Import Selected Vouchers" : $$LocaleString:"Please set the Default Purchase Ledger first via the 'Import Configuration' button (Alt+C)."
+    30 :    MSGBOX : "Import Selected Vouchers" : "Please set the Default Purchase Ledger first via 'Import Configuration' (Alt+C)."
     35 :    RETURN
     40 : ENDIF
 
-    ;; ---- Confirm with the user before writing to the books ----
-    45 : SET : DoneCount : 0
-    50 : IF : NOT $$YesNoPrompt:($$LocaleString:"Create " + $$String:##SelCount + " purchase voucher(s) from the selected portal-only invoices?")
-    55 :    RETURN
-    60 : ENDIF
-
     ;;-------------------------------------------------------------------------
-    ;; TODO (per-row voucher creation)
-    ;; Iterate the selected rows and create one voucher each. The exact walk
-    ;; over "selected report objects" depends on how the GSTR-2B report is
-    ;; structured on your build; the common pattern is shown below. Uncomment
-    ;; and complete after confirming the source field names in Developer Mode.
+    ;; TODO - per-row voucher creation.
+    ;; After confirming the GSTR-2B row field names in Developer Mode, iterate
+    ;; the selected rows and create one voucher each, e.g.:
     ;;
-    ;; 65 : WALK COLLECTION : <Selected-Rows-Collection>
-    ;; 70 :    NEW OBJECT   : Voucher
-    ;; 75 :       SET VALUE : Date            : <source invoice date field>     ;; TODO
-    ;; 80 :       SET VALUE : VoucherTypeName : ##GSTR2BImpVchType
-    ;; 85 :       SET VALUE : PartyLedgerName : <source supplier name field>    ;; TODO
-    ;; 90 :       SET VALUE : Reference       : <source invoice number field>   ;; TODO
-    ;; 95 :       ;; add ledger allocation lines for taxable value + IGST/CGST/SGST ... TODO
-    ;;100 :       SAVE TARGET
-    ;;105 :    END NEW OBJECT
-    ;;110 :    SET : DoneCount : ##DoneCount + 1
-    ;;115 : END WALK
+    ;;   50 : NEW OBJECT   : Voucher
+    ;;   55 :    SET VALUE : Date            : <source invoice date field>    ;; TODO
+    ;;   60 :    SET VALUE : VoucherTypeName : ##GSTR2BImpVchType
+    ;;   65 :    SET VALUE : PartyLedgerName : <source supplier field>        ;; TODO
+    ;;   70 :    SET VALUE : Reference       : <source invoice-no field>      ;; TODO
+    ;;   75 :    ;; add ledger allocations for taxable value + IGST/CGST/SGST  ;; TODO
+    ;;   80 :    SAVE TARGET
+    ;;   85 : END NEW OBJECT
     ;;-------------------------------------------------------------------------
 
-    ;; Until the creation block above is completed, report what was selected so
-    ;; you can confirm the button + selection wiring works end to end.
-    200 : MSGBOX : $$LocaleString:"Import Selected Vouchers" : $$LocaleString:"Ready to import " + $$String:##SelCount + " selected voucher(s) using ledger '" + ##GSTR2BImpPurcLedger + "' and voucher type '" + ##GSTR2BImpVchType + "'." + $$NewLine + $$LocaleString:"Complete the voucher-creation block (STEP 5) to write them to the books."
+    ;; Placeholder confirmation so you can verify the button + selection wiring.
+    90 : MSGBOX : "Import Selected Vouchers" : "Ready to import " + $$String:##SelCount + " selected voucher(s) using ledger '" + ##GSTR2BImpPurcLedger + "' and voucher type '" + ##GSTR2BImpVchType + "'."
 
     RETURN
 

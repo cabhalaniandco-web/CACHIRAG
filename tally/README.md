@@ -26,11 +26,14 @@ Developer Mode:
 5. Open the GSTR-2B Reconciliation → *Available only on Portal* view.
 6. Hover the mouse over an **empty area** (not on a field). The tooltip shows the
    current Report/Form name.
-7. Put that name in the `[#Form: ...]` line marked **STEP 1** in the `.tdl` file.
+7. Put that name in the `[#Form: ...]` line marked **STEP 1** in the `.tdl` file
+   and remove the leading `;;` from those three lines to activate them.
 
-> `Add : Button` on a non-existent Form name is a harmless no-op, so a wrong or
-> placeholder name will not break Tally — the buttons simply won't appear until
-> the correct name is set.
+> **Important:** `[#Form: <name>]` *modifies an existing* form. If `<name>` is not
+> a real form, Tally aborts loading with `T0008: Could not find the default TDL
+> definition of Form: <name>`. That's why **STEP 1 ships commented out** — the
+> file loads with no error, but the buttons only appear after you fill in the
+> real name and uncomment those three lines.
 
 ## 2. Load the TDL
 
