@@ -55,13 +55,29 @@
     Type : Logical
     Default : Yes
 
-;; -- Exempt / Cess / Round Off --
+;; -- Purchase ledgers --
+[Variable: GSTR2BImpPurcLed]
+    Type : String
+    Default : ""
 [Variable: GSTR2BImpExemptLed]
     Type : String
     Default : "PURCHASE EXEMPT"
+
+;; -- GST ledgers (single, not rate-wise) --
+[Variable: GSTR2BImpCGST]
+    Type : String
+    Default : ""
+[Variable: GSTR2BImpSGST]
+    Type : String
+    Default : ""
+[Variable: GSTR2BImpIGST]
+    Type : String
+    Default : ""
 [Variable: GSTR2BImpCessLed]
     Type : String
     Default : ""
+
+;; -- Round Off --
 [Variable: GSTR2BImpUseRoundOff]
     Type : Logical
     Default : No
@@ -69,80 +85,9 @@
     Type : String
     Default : ""
 
-;; -- 3% --
-[Variable: GSTR2BImpPurc3]
-    Type : String
-    Default : ""
-[Variable: GSTR2BImpCGST3]
-    Type : String
-    Default : "INPUT CGST 1.5%"
-[Variable: GSTR2BImpSGST3]
-    Type : String
-    Default : "INPUT SGST 1.5%"
-[Variable: GSTR2BImpIGST3]
-    Type : String
-    Default : "INPUT IGST 3%"
-
-;; -- 5% --
-[Variable: GSTR2BImpPurc5]
-    Type : String
-    Default : ""
-[Variable: GSTR2BImpCGST5]
-    Type : String
-    Default : "INPUT CGST 2.5%"
-[Variable: GSTR2BImpSGST5]
-    Type : String
-    Default : "INPUT SGST 2.5%"
-[Variable: GSTR2BImpIGST5]
-    Type : String
-    Default : "INPUT IGST 5%"
-
-;; -- 12% --
-[Variable: GSTR2BImpPurc12]
-    Type : String
-    Default : ""
-[Variable: GSTR2BImpCGST12]
-    Type : String
-    Default : "INPUT CGST 6%"
-[Variable: GSTR2BImpSGST12]
-    Type : String
-    Default : "INPUT SGST 6%"
-[Variable: GSTR2BImpIGST12]
-    Type : String
-    Default : "INPUT IGST 12%"
-
-;; -- 18% --
-[Variable: GSTR2BImpPurc18]
-    Type : String
-    Default : ""
-[Variable: GSTR2BImpCGST18]
-    Type : String
-    Default : "INPUT CGST 9%"
-[Variable: GSTR2BImpSGST18]
-    Type : String
-    Default : "INPUT SGST 9%"
-[Variable: GSTR2BImpIGST18]
-    Type : String
-    Default : "INPUT IGST 18%"
-
-;; -- 28% --
-[Variable: GSTR2BImpPurc28]
-    Type : String
-    Default : ""
-[Variable: GSTR2BImpCGST28]
-    Type : String
-    Default : "INPUT CGST 14%"
-[Variable: GSTR2BImpSGST28]
-    Type : String
-    Default : "INPUT SGST 14%"
-[Variable: GSTR2BImpIGST28]
-    Type : String
-    Default : "INPUT IGST 28%"
-
 
 ;;=============================================================================
 ;;  STEP 3B - Filtered dropdown sources (Collections + Formulas)
-;;  Voucher types by base type; ledgers by group (incl. sub-groups).
 ;;=============================================================================
 
 [System: Formula]
@@ -206,12 +151,12 @@
 
 [Form: GSTR2B Import Config]
     Parts  : GSTR2B Import Config
-    Width  : 60% Screen
-    Height : 85% Screen
+    Width  : 55% Screen
+    Height : 55% Screen
     Local  : Field : Default : Border : Thin Box
 
 [Part: GSTR2B Import Config]
-    Lines  : GSTR2B H VchTypes, GSTR2B L VchType, GSTR2B L DrNote, GSTR2B L CrNote, GSTR2B L EnableGST, GSTR2B H Ledgers, GSTR2B L Exempt, GSTR2B H R3, GSTR2B L Purc3, GSTR2B L CGST3, GSTR2B L SGST3, GSTR2B L IGST3, GSTR2B H R5, GSTR2B L Purc5, GSTR2B L CGST5, GSTR2B L SGST5, GSTR2B L IGST5, GSTR2B H R12, GSTR2B L Purc12, GSTR2B L CGST12, GSTR2B L SGST12, GSTR2B L IGST12, GSTR2B H R18, GSTR2B L Purc18, GSTR2B L CGST18, GSTR2B L SGST18, GSTR2B L IGST18, GSTR2B H R28, GSTR2B L Purc28, GSTR2B L CGST28, GSTR2B L SGST28, GSTR2B L IGST28, GSTR2B H Other, GSTR2B L Cess, GSTR2B L UseRoundOff, GSTR2B L RoundOffLed
+    Lines  : GSTR2B H VchTypes, GSTR2B L VchType, GSTR2B L DrNote, GSTR2B L CrNote, GSTR2B L EnableGST, GSTR2B H Ledgers, GSTR2B L PurcLed, GSTR2B L Exempt, GSTR2B H GST, GSTR2B L CGST, GSTR2B L SGST, GSTR2B L IGST, GSTR2B L Cess, GSTR2B H Other, GSTR2B L UseRoundOff, GSTR2B L RoundOffLed
     Scroll : Vertical
 
 ;; ---- label fields ----
@@ -276,7 +221,18 @@
 ;; =================== Ledgers ===================
 [Line: GSTR2B H Ledgers]
     Fields : GSTR2B Cfg Head
-    Local  : Field : GSTR2B Cfg Head : Set as : "Ledgers"
+    Local  : Field : GSTR2B Cfg Head : Set as : "Purchase Ledgers"
+
+[Line: GSTR2B L PurcLed]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F PurcLed
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase Ledger"
+[Field: GSTR2B F PurcLed]
+    Use : Name Field
+    Table : GSTR2B PurcLedgers
+    Show Table : Always
+    Width : 30
+    Modifies : GSTR2BImpPurcLed
+    Set as : ##GSTR2BImpPurcLed
 
 [Line: GSTR2B L Exempt]
     Fields : GSTR2B Cfg Prompt, GSTR2B F Exempt
@@ -289,250 +245,46 @@
     Modifies : GSTR2BImpExemptLed
     Set as : ##GSTR2BImpExemptLed
 
-;; =================== GST Purchase 3% ===================
-[Line: GSTR2B H R3]
+;; =================== GST Ledgers (single) ===================
+[Line: GSTR2B H GST]
     Fields : GSTR2B Cfg Head
-    Local  : Field : GSTR2B Cfg Head : Set as : "GST Purchase 3%"
-[Line: GSTR2B L Purc3]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F Purc3
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase 3% Ledger"
-[Field: GSTR2B F Purc3]
-    Use : Name Field
-    Table : GSTR2B PurcLedgers
-    Show Table : Always
-    Width : 30
-    Modifies : GSTR2BImpPurc3
-    Set as : ##GSTR2BImpPurc3
-[Line: GSTR2B L CGST3]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F CGST3
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "CGST 3% Ledger"
-[Field: GSTR2B F CGST3]
-    Use : Name Field
-    Table : GSTR2B DutiesLedgers
-    Show Table : Always
-    Width : 30
-    Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpCGST3
-    Set as : ##GSTR2BImpCGST3
-[Line: GSTR2B L SGST3]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F SGST3
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "SGST 3% Ledger"
-[Field: GSTR2B F SGST3]
-    Use : Name Field
-    Table : GSTR2B DutiesLedgers
-    Show Table : Always
-    Width : 30
-    Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpSGST3
-    Set as : ##GSTR2BImpSGST3
-[Line: GSTR2B L IGST3]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F IGST3
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "IGST 3% Ledger"
-[Field: GSTR2B F IGST3]
-    Use : Name Field
-    Table : GSTR2B DutiesLedgers
-    Show Table : Always
-    Width : 30
-    Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpIGST3
-    Set as : ##GSTR2BImpIGST3
+    Local  : Field : GSTR2B Cfg Head : Set as : "GST Ledgers"
 
-;; =================== GST Purchase 5% ===================
-[Line: GSTR2B H R5]
-    Fields : GSTR2B Cfg Head
-    Local  : Field : GSTR2B Cfg Head : Set as : "GST Purchase 5%"
-[Line: GSTR2B L Purc5]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F Purc5
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase 5% Ledger"
-[Field: GSTR2B F Purc5]
-    Use : Name Field
-    Table : GSTR2B PurcLedgers
-    Show Table : Always
-    Width : 30
-    Modifies : GSTR2BImpPurc5
-    Set as : ##GSTR2BImpPurc5
-[Line: GSTR2B L CGST5]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F CGST5
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "CGST 5% Ledger"
-[Field: GSTR2B F CGST5]
+[Line: GSTR2B L CGST]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F CGST
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "CGST Ledger"
+[Field: GSTR2B F CGST]
     Use : Name Field
     Table : GSTR2B DutiesLedgers
     Show Table : Always
     Width : 30
     Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpCGST5
-    Set as : ##GSTR2BImpCGST5
-[Line: GSTR2B L SGST5]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F SGST5
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "SGST 5% Ledger"
-[Field: GSTR2B F SGST5]
-    Use : Name Field
-    Table : GSTR2B DutiesLedgers
-    Show Table : Always
-    Width : 30
-    Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpSGST5
-    Set as : ##GSTR2BImpSGST5
-[Line: GSTR2B L IGST5]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F IGST5
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "IGST 5% Ledger"
-[Field: GSTR2B F IGST5]
-    Use : Name Field
-    Table : GSTR2B DutiesLedgers
-    Show Table : Always
-    Width : 30
-    Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpIGST5
-    Set as : ##GSTR2BImpIGST5
+    Modifies : GSTR2BImpCGST
+    Set as : ##GSTR2BImpCGST
 
-;; =================== GST Purchase 12% ===================
-[Line: GSTR2B H R12]
-    Fields : GSTR2B Cfg Head
-    Local  : Field : GSTR2B Cfg Head : Set as : "GST Purchase 12%"
-[Line: GSTR2B L Purc12]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F Purc12
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase 12% Ledger"
-[Field: GSTR2B F Purc12]
-    Use : Name Field
-    Table : GSTR2B PurcLedgers
-    Show Table : Always
-    Width : 30
-    Modifies : GSTR2BImpPurc12
-    Set as : ##GSTR2BImpPurc12
-[Line: GSTR2B L CGST12]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F CGST12
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "CGST 12% Ledger"
-[Field: GSTR2B F CGST12]
+[Line: GSTR2B L SGST]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F SGST
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "SGST Ledger"
+[Field: GSTR2B F SGST]
     Use : Name Field
     Table : GSTR2B DutiesLedgers
     Show Table : Always
     Width : 30
     Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpCGST12
-    Set as : ##GSTR2BImpCGST12
-[Line: GSTR2B L SGST12]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F SGST12
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "SGST 12% Ledger"
-[Field: GSTR2B F SGST12]
-    Use : Name Field
-    Table : GSTR2B DutiesLedgers
-    Show Table : Always
-    Width : 30
-    Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpSGST12
-    Set as : ##GSTR2BImpSGST12
-[Line: GSTR2B L IGST12]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F IGST12
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "IGST 12% Ledger"
-[Field: GSTR2B F IGST12]
-    Use : Name Field
-    Table : GSTR2B DutiesLedgers
-    Show Table : Always
-    Width : 30
-    Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpIGST12
-    Set as : ##GSTR2BImpIGST12
+    Modifies : GSTR2BImpSGST
+    Set as : ##GSTR2BImpSGST
 
-;; =================== GST Purchase 18% ===================
-[Line: GSTR2B H R18]
-    Fields : GSTR2B Cfg Head
-    Local  : Field : GSTR2B Cfg Head : Set as : "GST Purchase 18%"
-[Line: GSTR2B L Purc18]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F Purc18
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase 18% Ledger"
-[Field: GSTR2B F Purc18]
-    Use : Name Field
-    Table : GSTR2B PurcLedgers
-    Show Table : Always
-    Width : 30
-    Modifies : GSTR2BImpPurc18
-    Set as : ##GSTR2BImpPurc18
-[Line: GSTR2B L CGST18]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F CGST18
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "CGST 18% Ledger"
-[Field: GSTR2B F CGST18]
+[Line: GSTR2B L IGST]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F IGST
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "IGST Ledger"
+[Field: GSTR2B F IGST]
     Use : Name Field
     Table : GSTR2B DutiesLedgers
     Show Table : Always
     Width : 30
     Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpCGST18
-    Set as : ##GSTR2BImpCGST18
-[Line: GSTR2B L SGST18]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F SGST18
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "SGST 18% Ledger"
-[Field: GSTR2B F SGST18]
-    Use : Name Field
-    Table : GSTR2B DutiesLedgers
-    Show Table : Always
-    Width : 30
-    Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpSGST18
-    Set as : ##GSTR2BImpSGST18
-[Line: GSTR2B L IGST18]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F IGST18
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "IGST 18% Ledger"
-[Field: GSTR2B F IGST18]
-    Use : Name Field
-    Table : GSTR2B DutiesLedgers
-    Show Table : Always
-    Width : 30
-    Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpIGST18
-    Set as : ##GSTR2BImpIGST18
-
-;; =================== GST Purchase 28% ===================
-[Line: GSTR2B H R28]
-    Fields : GSTR2B Cfg Head
-    Local  : Field : GSTR2B Cfg Head : Set as : "GST Purchase 28%"
-[Line: GSTR2B L Purc28]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F Purc28
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase 28% Ledger"
-[Field: GSTR2B F Purc28]
-    Use : Name Field
-    Table : GSTR2B PurcLedgers
-    Show Table : Always
-    Width : 30
-    Modifies : GSTR2BImpPurc28
-    Set as : ##GSTR2BImpPurc28
-[Line: GSTR2B L CGST28]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F CGST28
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "CGST 28% Ledger"
-[Field: GSTR2B F CGST28]
-    Use : Name Field
-    Table : GSTR2B DutiesLedgers
-    Show Table : Always
-    Width : 30
-    Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpCGST28
-    Set as : ##GSTR2BImpCGST28
-[Line: GSTR2B L SGST28]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F SGST28
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "SGST 28% Ledger"
-[Field: GSTR2B F SGST28]
-    Use : Name Field
-    Table : GSTR2B DutiesLedgers
-    Show Table : Always
-    Width : 30
-    Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpSGST28
-    Set as : ##GSTR2BImpSGST28
-[Line: GSTR2B L IGST28]
-    Fields : GSTR2B Cfg Prompt, GSTR2B F IGST28
-    Local  : Field : GSTR2B Cfg Prompt : Set as : "IGST 28% Ledger"
-[Field: GSTR2B F IGST28]
-    Use : Name Field
-    Table : GSTR2B DutiesLedgers
-    Show Table : Always
-    Width : 30
-    Inactive : NOT ##GSTR2BImpEnableGST
-    Modifies : GSTR2BImpIGST28
-    Set as : ##GSTR2BImpIGST28
-
-;; =================== Other ===================
-[Line: GSTR2B H Other]
-    Fields : GSTR2B Cfg Head
-    Local  : Field : GSTR2B Cfg Head : Set as : "Other"
+    Modifies : GSTR2BImpIGST
+    Set as : ##GSTR2BImpIGST
 
 [Line: GSTR2B L Cess]
     Fields : GSTR2B Cfg Prompt, GSTR2B F Cess
@@ -545,6 +297,11 @@
     Inactive : NOT ##GSTR2BImpEnableGST
     Modifies : GSTR2BImpCessLed
     Set as : ##GSTR2BImpCessLed
+
+;; =================== Other ===================
+[Line: GSTR2B H Other]
+    Fields : GSTR2B Cfg Head
+    Local  : Field : GSTR2B Cfg Head : Set as : "Other"
 
 [Line: GSTR2B L UseRoundOff]
     Fields : GSTR2B Cfg Prompt, GSTR2B F UseRO
@@ -590,7 +347,7 @@
     35 :    RETURN
     40 : ENDIF
 
-    ;; TODO - per-row voucher creation using the rate-wise ledgers configured above.
+    ;; TODO - per-row voucher creation using the configured ledgers above.
     90 : MSGBOX : "Import Selected Vouchers" : "Ready to import " + $$String:##SelCount + " selected voucher(s) using voucher type '" + ##GSTR2BImpVchType + "'."
 
     RETURN
