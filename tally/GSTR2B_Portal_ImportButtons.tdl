@@ -1,0 +1,413 @@
+;;=============================================================================
+;;  GSTR-2B Reconciliation  ->  "Available Only on Portal"
+;;  Custom right-panel (button bar) buttons for TallyPrime
+;;
+;;    Button 1 :  Import Configuration        (Alt+C)   -> Purchase Config screen
+;;    Button 2 :  Import Selected Vouchers     (Alt+V)
+;;
+;;  Purchase ledgers are rate-wise (3/5/12/18/28%); GST ledgers are single
+;;  (CGST / SGST / IGST / CESS).
+;;
+;;  The configuration is stored on the COMPANY (UDFs), so it persists across
+;;  screen re-opens and Tally sessions.
+;;
+;;  Language : Tally Definition Language (TDL)   |   Product : TallyPrime
+;;
+;;  LOAD: F1 (Help) > TDL & Add-On > F4 (Manage Local TDLs) >
+;;        "Load selected TDL files on startup" = Yes > add this file > restart.
+;;=============================================================================
+
+
+;;=============================================================================
+;;  STEP 1 - Attach the two buttons to the GSTR-2B "Available Only on Portal"
+;;  voucher list. Form 'GSTR Recon DrillDown' confirmed via Developer Mode.
+;;=============================================================================
+
+[#Form: GSTR Recon DrillDown]
+    Add : Button : GSTR2B ImpConfig Btn
+    Add : Button : GSTR2B ImpSelVch Btn
+
+
+;;=============================================================================
+;;  STEP 2 - Button definitions
+;;=============================================================================
+
+[Button: GSTR2B ImpConfig Btn]
+    Key    : Alt+C
+    Title  : "Import Configuration"
+    ;; Alter (edit mode) on the Company report so fields accept input, dropdowns
+    ;; pop, and Ctrl+A saves the UDFs onto the company.
+    Action : Alter : GSTR2B Import Config
+
+[Button: GSTR2B ImpSelVch Btn]
+    Key    : Alt+V
+    Title  : "Import Selected Vouchers"
+    Action : Call : GSTR2B Import Selected Vouchers
+
+
+;;=============================================================================
+;;  STEP 3 - Configuration storage (UDFs on the Company object).
+;;  Developer UDF index range 20001-59999 is used.
+;;=============================================================================
+
+[System: UDF]
+    GSTR2BVchTypeUDF : String  : 20001
+    GSTR2BDrNoteUDF  : String  : 20002
+    GSTR2BCrNoteUDF  : String  : 20003
+    GSTR2BPerWiseUDF : Logical : 20004
+    GSTR2BExemptUDF  : String  : 20005
+    GSTR2BPurc3UDF   : String  : 20006
+    GSTR2BPurc5UDF   : String  : 20007
+    GSTR2BPurc12UDF  : String  : 20008
+    GSTR2BPurc18UDF  : String  : 20009
+    GSTR2BPurc28UDF  : String  : 20010
+    GSTR2BCGSTUDF    : String  : 20011
+    GSTR2BSGSTUDF    : String  : 20012
+    GSTR2BIGSTUDF    : String  : 20013
+    GSTR2BCessUDF    : String  : 20014
+    GSTR2BUseROUDF   : Logical : 20015
+    GSTR2BROLedUDF   : String  : 20016
+
+
+;;=============================================================================
+;;  STEP 3B - Filtered dropdown sources (Collections + Formulas)
+;;=============================================================================
+
+[System: Formula]
+    GSTR2BIsPurcVT : $Parent = "Purchase" OR $Name = "Purchase"
+    GSTR2BIsDrVT   : $Parent = "Debit Note" OR $Name = "Debit Note"
+    GSTR2BIsCrVT   : $Parent = "Credit Note" OR $Name = "Credit Note"
+
+;; ---- Voucher-type dropdowns (Fetch Name so the table has a display value) ----
+[Collection: GSTR2B PurcVchTypes]
+    Type   : VoucherType
+    Fetch  : Name
+    Filter : GSTR2BIsPurcVT
+
+[Collection: GSTR2B DrNoteVchTypes]
+    Type   : VoucherType
+    Fetch  : Name
+    Filter : GSTR2BIsDrVT
+
+[Collection: GSTR2B CrNoteVchTypes]
+    Type   : VoucherType
+    Fetch  : Name
+    Filter : GSTR2BIsCrVT
+
+;; ---- Ledger group sources (Belongs To : Yes includes sub-groups) ----
+[Collection: GSTR2B Led PurcAcct]
+    Type       : Ledger
+    Child Of   : "Purchase Accounts"
+    Belongs To : Yes
+    Fetch      : Name
+[Collection: GSTR2B Led DirExp]
+    Type       : Ledger
+    Child Of   : "Direct Expenses"
+    Belongs To : Yes
+    Fetch      : Name
+[Collection: GSTR2B Led IndExp]
+    Type       : Ledger
+    Child Of   : "Indirect Expenses"
+    Belongs To : Yes
+    Fetch      : Name
+[Collection: GSTR2B Led IndInc]
+    Type       : Ledger
+    Child Of   : "Indirect Incomes"
+    Belongs To : Yes
+    Fetch      : Name
+
+;; Purchase ledger dropdown = Purchase Accounts + Direct Exp + Indirect Exp
+[Collection: GSTR2B PurcLedgers]
+    Collection : GSTR2B Led PurcAcct, GSTR2B Led DirExp, GSTR2B Led IndExp
+
+;; GST / CESS ledger dropdown = Duties & Taxes
+[Collection: GSTR2B DutiesLedgers]
+    Type       : Ledger
+    Child Of   : "Duties & Taxes"
+    Belongs To : Yes
+    Fetch      : Name
+
+;; Round-off ledger dropdown = Indirect Expenses + Indirect Incomes
+[Collection: GSTR2B RoundOffLedgers]
+    Collection : GSTR2B Led IndExp, GSTR2B Led IndInc
+
+
+;;=============================================================================
+;;  STEP 4 - "Import Configuration" (Purchase Config) screen.
+;;  Object : Company + Storage saves each field onto the company (persistent).
+;;  Ctrl+A to save.
+;;=============================================================================
+
+[Report: GSTR2B Import Config]
+    Form   : GSTR2B Import Config
+    Title  : "GSTR-2B Purchase Configuration"
+    Object : Company
+
+[Form: GSTR2B Import Config]
+    Parts  : GSTR2B Import Config
+    Width  : 55% Screen
+    Height : 70% Screen
+    Local  : Field : Default : Border : Thin Box
+
+[Part: GSTR2B Import Config]
+    Lines  : GSTR2B H VchTypes, GSTR2B L VchType, GSTR2B L DrNote, GSTR2B L CrNote, GSTR2B L PerWise, GSTR2B H Ledgers, GSTR2B L Exempt, GSTR2B L Purc3, GSTR2B L Purc5, GSTR2B L Purc12, GSTR2B L Purc18, GSTR2B L Purc28, GSTR2B H GST, GSTR2B L CGST, GSTR2B L SGST, GSTR2B L IGST, GSTR2B L Cess, GSTR2B H Other, GSTR2B L UseRoundOff, GSTR2B L RoundOffLed
+    Scroll : Vertical
+
+;; ---- label fields ----
+[Field: GSTR2B Cfg Prompt]
+    Set as : ""
+    Width  : 28
+    Skip   : Yes
+
+[Field: GSTR2B Cfg Head]
+    Set as : ""
+    Width  : 40
+    Skip   : Yes
+    Style  : Normal Bold
+
+;; =================== Voucher Types ===================
+[Line: GSTR2B H VchTypes]
+    Fields : GSTR2B Cfg Head
+    Local  : Field : GSTR2B Cfg Head : Set as : "Voucher Types"
+
+[Line: GSTR2B L VchType]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F VchType
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase Voucher Type"
+[Field: GSTR2B F VchType]
+    Use : Name Field
+    Table : GSTR2B PurcVchTypes, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BVchTypeUDF
+    Set as : $GSTR2BVchTypeUDF
+
+[Line: GSTR2B L DrNote]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F DrNote
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Dr. Note Voucher Type"
+[Field: GSTR2B F DrNote]
+    Use : Name Field
+    Table : GSTR2B DrNoteVchTypes, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BDrNoteUDF
+    Set as : $GSTR2BDrNoteUDF
+
+[Line: GSTR2B L CrNote]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F CrNote
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Cr. Note Voucher Type"
+[Field: GSTR2B F CrNote]
+    Use : Name Field
+    Table : GSTR2B CrNoteVchTypes, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BCrNoteUDF
+    Set as : $GSTR2BCrNoteUDF
+
+[Line: GSTR2B L PerWise]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F PerWise
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Enable GST Tax Entry Percent Wise"
+[Field: GSTR2B F PerWise]
+    Use : Logical Field
+    Width : 30
+    Storage : GSTR2BPerWiseUDF
+    Set as : $GSTR2BPerWiseUDF
+
+;; =================== Purchase Ledgers (rate-wise) ===================
+[Line: GSTR2B H Ledgers]
+    Fields : GSTR2B Cfg Head
+    Local  : Field : GSTR2B Cfg Head : Set as : "Purchase Ledgers"
+
+[Line: GSTR2B L Exempt]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F Exempt
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Purchase Exempted Ledger"
+[Field: GSTR2B F Exempt]
+    Use : Name Field
+    Table : GSTR2B PurcLedgers, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BExemptUDF
+    Set as : $GSTR2BExemptUDF
+
+[Line: GSTR2B L Purc3]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F Purc3
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "GST Purchase 3%"
+[Field: GSTR2B F Purc3]
+    Use : Name Field
+    Table : GSTR2B PurcLedgers, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BPurc3UDF
+    Set as : $GSTR2BPurc3UDF
+
+[Line: GSTR2B L Purc5]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F Purc5
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "GST Purchase 5%"
+[Field: GSTR2B F Purc5]
+    Use : Name Field
+    Table : GSTR2B PurcLedgers, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BPurc5UDF
+    Set as : $GSTR2BPurc5UDF
+
+[Line: GSTR2B L Purc12]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F Purc12
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "GST Purchase 12%"
+[Field: GSTR2B F Purc12]
+    Use : Name Field
+    Table : GSTR2B PurcLedgers, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BPurc12UDF
+    Set as : $GSTR2BPurc12UDF
+
+[Line: GSTR2B L Purc18]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F Purc18
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "GST Purchase 18%"
+[Field: GSTR2B F Purc18]
+    Use : Name Field
+    Table : GSTR2B PurcLedgers, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BPurc18UDF
+    Set as : $GSTR2BPurc18UDF
+
+[Line: GSTR2B L Purc28]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F Purc28
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "GST Purchase 28%"
+[Field: GSTR2B F Purc28]
+    Use : Name Field
+    Table : GSTR2B PurcLedgers, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BPurc28UDF
+    Set as : $GSTR2BPurc28UDF
+
+;; =================== GST Ledgers (single) ===================
+[Line: GSTR2B H GST]
+    Fields : GSTR2B Cfg Head
+    Local  : Field : GSTR2B Cfg Head : Set as : "GST Ledgers"
+
+[Line: GSTR2B L CGST]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F CGST
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "CGST Ledger"
+[Field: GSTR2B F CGST]
+    Use : Name Field
+    Table : GSTR2B DutiesLedgers, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BCGSTUDF
+    Set as : $GSTR2BCGSTUDF
+
+[Line: GSTR2B L SGST]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F SGST
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "SGST Ledger"
+[Field: GSTR2B F SGST]
+    Use : Name Field
+    Table : GSTR2B DutiesLedgers, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BSGSTUDF
+    Set as : $GSTR2BSGSTUDF
+
+[Line: GSTR2B L IGST]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F IGST
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "IGST Ledger"
+[Field: GSTR2B F IGST]
+    Use : Name Field
+    Table : GSTR2B DutiesLedgers, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BIGSTUDF
+    Set as : $GSTR2BIGSTUDF
+
+[Line: GSTR2B L Cess]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F Cess
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "CESS Ledger"
+[Field: GSTR2B F Cess]
+    Use : Name Field
+    Table : GSTR2B DutiesLedgers, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BCessUDF
+    Set as : $GSTR2BCessUDF
+
+;; =================== Other ===================
+[Line: GSTR2B H Other]
+    Fields : GSTR2B Cfg Head
+    Local  : Field : GSTR2B Cfg Head : Set as : "Other"
+
+[Line: GSTR2B L UseRoundOff]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F UseRO
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Use Round Off"
+[Field: GSTR2B F UseRO]
+    Use : Logical Field
+    Width : 30
+    Storage : GSTR2BUseROUDF
+    Set as : $GSTR2BUseROUDF
+
+[Line: GSTR2B L RoundOffLed]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F ROLed
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Round Off Ledger"
+[Field: GSTR2B F ROLed]
+    Use : Name Field
+    Table : GSTR2B RoundOffLedgers, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BROLedUDF
+    Set as : $GSTR2BROLedUDF
+
+
+;;=============================================================================
+;;  STEP 5 - "Import Selected Vouchers"  (DRY RUN - no posting yet)
+;;
+;;  Config is read back from the company UDFs. Row values are read with the
+;;  METHODS below (from the Developer-Mode field names). If a value shows blank
+;;  in the preview, tell me which and I'll fix that method name:
+;;    party -> $PartyLedgerName  docno -> $DocumentNo  docdate -> $DocumentDate
+;;    taxable -> $TaxableAmount  cgst -> $CGSTAmount  sgst -> $SGSTAmount  igst -> $IGSTAmount
+;;=============================================================================
+
+;; Objects the user selected (Spacebar) on the current report.
+;; Client Only : Yes makes it read the current screen's selected lines.
+[Collection: GSTR2BSelectedRows]
+    Data Source : Report : Selected
+    Client Only : Yes
+
+[Function: GSTR2B Import Selected Vouchers]
+
+    Variable : SelCount : Number
+    Variable : vRow     : Number
+    Variable : vMsg     : String
+    Variable : vVchType : String
+
+    01 : SET : SelCount : $$NumItems:GSTR2BSelectedRows
+    02 : SET : vVchType : $GSTR2BVchTypeUDF:Company:##SVCurrentCompany
+
+    05 : IF : ##SelCount = 0
+    10 :    MSGBOX : "Import Selected Vouchers" : "No rows selected. In the 'Available Only on Portal' list, select one or more rows using the Spacebar, then click 'Import Selected Vouchers'."
+    15 :    RETURN
+    20 : ENDIF
+
+    25 : IF : $$IsEmpty:##vVchType
+    30 :    MSGBOX : "Import Selected Vouchers" : "Please set the Purchase Voucher Type first via 'Import Configuration' (Alt+C) and save it with Ctrl+A."
+    35 :    RETURN
+    40 : ENDIF
+
+    ;; ---- DRY RUN preview of the first few selected rows ----
+    45 : SET : vRow : 0
+    50 : SET : vMsg : "DRY RUN (no voucher posted). Voucher Type = '" + ##vVchType + "'. Values from " + $$String:##SelCount + " selected row(s):"
+    55 : WALK COLLECTION : GSTR2BSelectedRows
+    60 :    SET : vRow : ##vRow + 1
+    65 :    IF : ##vRow <= 5
+    70 :       SET : vMsg : ##vMsg + $$NewLine + $$NewLine + "Row " + $$String:##vRow + " -  Party: " + $PartyLedgerName + "  | Doc No: " + $DocumentNo + "  | Doc Date: " + $$String:$DocumentDate + "  | Taxable: " + $$String:$TaxableAmount + "  | CGST: " + $$String:$CGSTAmount + "  | SGST: " + $$String:$SGSTAmount + "  | IGST: " + $$String:$IGSTAmount
+    75 :    ENDIF
+    80 : END WALK
+
+    85 : MSGBOX : "Import Selected Vouchers (Preview)" : ##vMsg
+
+    RETURN
+
+;;=============================================================================
+;;  End of file
+;;=============================================================================
