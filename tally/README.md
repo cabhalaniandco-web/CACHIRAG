@@ -3,9 +3,8 @@
 `GSTR2B_Portal_ImportButtons.tdl` adds two buttons to the right-hand button bar
 of the **GSTR-2B Reconciliation** report in TallyPrime:
 
-- **Import Configuration** (`Alt+C`) — opens a small screen to set the purchase
-  voucher type, the default purchase ledger, and whether to auto-create missing
-  masters.
+- **Import Configuration** (`Alt+C`) — purchase voucher types, rate-wise purchase
+  ledgers (3/5/12/18/28%), GST ledgers, and round-off options (saved on the company).
 - **Import Selected Vouchers** (`Alt+V`) — creates purchase vouchers from the
   rows you select (Spacebar) in the *Available only on Portal* section.
 
@@ -37,14 +36,12 @@ Developer Mode:
 5. Open the GSTR-2B Reconciliation → *Available only on Portal* view.
 6. Hover the mouse over an **empty area** (not on a field). The tooltip shows the
    current Report/Form name.
-7. Put that name in the `[#Form: ...]` line marked **STEP 1** in the `.tdl` file
-   and remove the leading `;;` from those three lines to activate them.
+7. Put that name in the `[#Form: ...]` line marked **STEP 1** in the `.tdl` file.
 
 > **Important:** `[#Form: <name>]` *modifies an existing* form. If `<name>` is not
 > a real form, Tally aborts loading with `T0008: Could not find the default TDL
-> definition of Form: <name>`. That's why **STEP 1 ships commented out** — the
-> file loads with no error, but the buttons only appear after you fill in the
-> real name and uncomment those three lines.
+> definition of Form: <name>`. STEP 1 is set to **`GSTR Recon DrillDown`** for
+> current TallyPrime builds; update it if your release uses a different internal name.
 
 ## 2. Load the TDL
 
@@ -57,10 +54,11 @@ TallyPrime: `F1 (Help) → TDL & Add-On → F4 (Manage Local TDLs)` → set
 1. Open the GSTR-2B Reconciliation → *Available only on Portal* view.
 2. Confirm **Import Configuration** and **Import Selected Vouchers** appear in the
    right button bar (and respond to `Alt+C` / `Alt+V`).
-3. Click **Import Configuration**, set a Default Purchase Ledger, save (`Ctrl+A`).
+3. Click **Import Configuration**, set at least the **Purchase Voucher Type** (and
+   ledgers as needed), save (`Ctrl+A`).
 4. Select one or more rows with the **Spacebar**, click **Import Selected
-   Vouchers**, and confirm the summary message reports the correct count and your
-   configured ledger/voucher type.
+   Vouchers**, and confirm the preview lists party, document no./date, and tax amounts
+   for the selected rows (up to five shown).
 
 ## 4. Finish the importer
 
