@@ -3,13 +3,21 @@
 ;;  Custom right-panel (button bar) buttons for TallyPrime
 ;;
 ;;    Button 1 :  Import Configuration        (Alt+C)   -> Purchase Config screen
-;;    Button 2 :  Import Selected Vouchers     (Alt+V)
+;;    Button 2 :  Import Selected Vouchers    (Alt+V)   -> posts purchase vouchers
 ;;
 ;;  Purchase ledgers are rate-wise (3/5/12/18/28%); GST ledgers are single
 ;;  (CGST / SGST / IGST / CESS).
 ;;
 ;;  The configuration is stored on the COMPANY (UDFs), so it persists across
 ;;  screen re-opens and Tally sessions.
+;;
+;;  "Import Selected Vouchers" reads the rows you selected with the Spacebar and
+;;  creates one purchase voucher per row:
+;;      Dr  Purchase ledger for the invoice's GST rate   (taxable value)
+;;      Dr  CGST + SGST  or  IGST  (+ CESS)              (tax amounts)
+;;      Cr  Party ledger taken from "Particulars"        (invoice total)
+;;  Voucher No. = Doc No., Voucher Date = Doc Date, both from the portal row.
+;;  Set "Dry Run" = Yes in the configuration to preview the values first.
 ;;
 ;;  Language : Tally Definition Language (TDL)   |   Product : TallyPrime
 ;;
@@ -67,6 +75,9 @@
     GSTR2BCessUDF    : String  : 20014
     GSTR2BUseROUDF   : Logical : 20015
     GSTR2BROLedUDF   : String  : 20016
+    GSTR2BDryRunUDF  : Logical : 20017
+    GSTR2BMakePtyUDF : Logical : 20018
+    GSTR2BPtyGrpUDF  : String  : 20019
 
 
 ;;=============================================================================
@@ -131,6 +142,11 @@
 [Collection: GSTR2B RoundOffLedgers]
     Collection : GSTR2B Led IndExp, GSTR2B Led IndInc
 
+;; Group dropdown for parties that have to be created during import
+[Collection: GSTR2B PartyGroups]
+    Type  : Group
+    Fetch : Name
+
 
 ;;=============================================================================
 ;;  STEP 4 - "Import Configuration" (Purchase Config) screen.
@@ -150,7 +166,7 @@
     Local  : Field : Default : Border : Thin Box
 
 [Part: GSTR2B Import Config]
-    Lines  : GSTR2B H VchTypes, GSTR2B L VchType, GSTR2B L DrNote, GSTR2B L CrNote, GSTR2B L PerWise, GSTR2B H Ledgers, GSTR2B L Exempt, GSTR2B L Purc3, GSTR2B L Purc5, GSTR2B L Purc12, GSTR2B L Purc18, GSTR2B L Purc28, GSTR2B H GST, GSTR2B L CGST, GSTR2B L SGST, GSTR2B L IGST, GSTR2B L Cess, GSTR2B H Other, GSTR2B L UseRoundOff, GSTR2B L RoundOffLed
+    Lines  : GSTR2B H VchTypes, GSTR2B L VchType, GSTR2B L DrNote, GSTR2B L CrNote, GSTR2B L PerWise, GSTR2B H Ledgers, GSTR2B L Exempt, GSTR2B L Purc3, GSTR2B L Purc5, GSTR2B L Purc12, GSTR2B L Purc18, GSTR2B L Purc28, GSTR2B H GST, GSTR2B L CGST, GSTR2B L SGST, GSTR2B L IGST, GSTR2B L Cess, GSTR2B H Other, GSTR2B L UseRoundOff, GSTR2B L RoundOffLed, GSTR2B L MakeParty, GSTR2B L PartyGroup, GSTR2B L DryRun
     Scroll : Vertical
 
 ;; ---- label fields ----
@@ -357,15 +373,353 @@
     Storage : GSTR2BROLedUDF
     Set as : $GSTR2BROLedUDF
 
+[Line: GSTR2B L MakeParty]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F MakeParty
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Create Missing Party Ledger"
+[Field: GSTR2B F MakeParty]
+    Use : Logical Field
+    Width : 30
+    Storage : GSTR2BMakePtyUDF
+    Set as : $GSTR2BMakePtyUDF
+
+[Line: GSTR2B L PartyGroup]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F PartyGroup
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Group for New Party Ledger"
+[Field: GSTR2B F PartyGroup]
+    Use : Name Field
+    Table : GSTR2B PartyGroups, Not Applicable
+    Show Table : Always
+    Width : 30
+    Storage : GSTR2BPtyGrpUDF
+    Set as : $GSTR2BPtyGrpUDF
+
+[Line: GSTR2B L DryRun]
+    Fields : GSTR2B Cfg Prompt, GSTR2B F DryRun
+    Local  : Field : GSTR2B Cfg Prompt : Set as : "Dry Run (Preview Only)"
+[Field: GSTR2B F DryRun]
+    Use : Logical Field
+    Width : 30
+    Storage : GSTR2BDryRunUDF
+    Set as : $GSTR2BDryRunUDF
+
 
 ;;=============================================================================
-;;  STEP 5 - "Import Selected Vouchers"  (DRY RUN - no posting yet)
+;;  STEP 5 - Reading one GSTR-2B portal row.
 ;;
-;;  Config is read back from the company UDFs. Row values are read with the
-;;  METHODS below (from the Developer-Mode field names). If a value shows blank
-;;  in the preview, tell me which and I'll fix that method name:
-;;    party -> $PartyLedgerName  docno -> $DocumentNo  docdate -> $DocumentDate
-;;    taxable -> $TaxableAmount  cgst -> $CGSTAmount  sgst -> $SGSTAmount  igst -> $IGSTAmount
+;;  The drill-down rows are internal objects whose method names are not
+;;  published, so every value is read through a fallback chain: the first
+;;  method that returns something wins. A method the object does not have
+;;  simply evaluates to blank, so the extra candidates are harmless.
+;;  Run the import once with "Dry Run" = Yes: the preview lists what each
+;;  formula produced, so a blank column points at the chain to extend.
+;;=============================================================================
+
+[System: Formula]
+    GSTR2BRowParty   : if NOT $$IsEmpty:$PartyLedgerName then $PartyLedgerName else if NOT $$IsEmpty:$PartyName then $PartyName else if NOT $$IsEmpty:$LedgerName then $LedgerName else if NOT $$IsEmpty:$TradeName then $TradeName else $GSTRVchParticulars
+
+    GSTR2BRowDocNo   : if NOT $$IsEmpty:$DocumentNo then $DocumentNo else if NOT $$IsEmpty:$VoucherNumber then $VoucherNumber else if NOT $$IsEmpty:$Reference then $Reference else if NOT $$IsEmpty:$BillNo then $BillNo else $InvoiceNo
+
+    GSTR2BRowDocDate : if NOT $$IsEmpty:$DocumentDate then $DocumentDate else if NOT $$IsEmpty:$ReferenceDate then $ReferenceDate else if NOT $$IsEmpty:$Date then $Date else $InvoiceDate
+
+    GSTR2BRowTaxable : if NOT $$IsEmpty:$TaxableAmount then $$Number:$TaxableAmount else if NOT $$IsEmpty:$TaxableValue then $$Number:$TaxableValue else if NOT $$IsEmpty:$AssessableValue then $$Number:$AssessableValue else 0
+
+    GSTR2BRowCGST    : if NOT $$IsEmpty:$CGSTAmount then $$Number:$CGSTAmount else if NOT $$IsEmpty:$CentralTaxAmount then $$Number:$CentralTaxAmount else 0
+
+    GSTR2BRowSGST    : if NOT $$IsEmpty:$SGSTAmount then $$Number:$SGSTAmount else if NOT $$IsEmpty:$StateTaxAmount then $$Number:$StateTaxAmount else if NOT $$IsEmpty:$UTGSTAmount then $$Number:$UTGSTAmount else 0
+
+    GSTR2BRowIGST    : if NOT $$IsEmpty:$IGSTAmount then $$Number:$IGSTAmount else if NOT $$IsEmpty:$IntegratedTaxAmount then $$Number:$IntegratedTaxAmount else 0
+
+    GSTR2BRowCess    : if NOT $$IsEmpty:$CessAmount then $$Number:$CessAmount else if NOT $$IsEmpty:$CessTaxAmount then $$Number:$CessTaxAmount else 0
+
+
+;;=============================================================================
+;;  STEP 6 - Config helpers
+;;=============================================================================
+
+;; "Not Applicable" (the last entry of every dropdown) and blank both mean
+;; "not configured", so they collapse to an empty string for the importer.
+[Function: GSTR2BCleanCfg]
+    Returns   : String
+    Parameter : pValue : String
+
+    01 : IF : $$IsEmpty:##pValue OR ##pValue = "Not Applicable"
+    02 :    RETURN : ""
+    03 : ENDIF
+    04 : RETURN : ##pValue
+
+;; A ledger that does not exist has no $Name, so this is the existence test.
+[Function: GSTR2BLedgerExists]
+    Returns   : Logical
+    Parameter : pLedger : String
+
+    01 : IF : $$IsEmpty:##pLedger
+    02 :    RETURN : No
+    03 : ENDIF
+    04 : RETURN : NOT $$IsEmpty:$Name:Ledger:##pLedger
+
+[Function: GSTR2BCreateParty]
+    Returns   : Logical
+    Parameter : pLedger : String
+    Parameter : pGroup  : String
+
+    Variable  : vGroup : String
+
+    01 : SET : vGroup : ##pGroup
+    02 : IF : $$IsEmpty:##vGroup
+    03 :    SET : vGroup : "Sundry Creditors"
+    04 : ENDIF
+
+    05 : NEW OBJECT : Ledger
+    10 : SET VALUE  : Name   : ##pLedger
+    15 : SET VALUE  : Parent : ##vGroup
+    20 : SAVE TARGET
+
+    25 : RETURN : $$Function:GSTR2BLedgerExists:##pLedger
+
+
+;;=============================================================================
+;;  STEP 7 - Posting one purchase voucher.
+;;
+;;  Sign convention of Tally's Amount method: debit is negative, credit is
+;;  positive. The GST rate is derived from tax / taxable value and mapped to
+;;  the nearest slab so the matching rate-wise purchase ledger is picked up
+;;  from the configuration.
+;;
+;;  Returns "OK" on success, or "SKIP: <reason>" when the row cannot be posted.
+;;=============================================================================
+
+[Function: GSTR2BPostVoucher]
+    Returns   : String
+
+    Parameter : pVchType : String
+    Parameter : pParty   : String
+    Parameter : pDocNo   : String
+    Parameter : pDocDate : Date
+    Parameter : pTaxable : Amount
+    Parameter : pCGST    : Amount
+    Parameter : pSGST    : Amount
+    Parameter : pIGST    : Amount
+    Parameter : pCess    : Amount
+
+    Variable  : vPurcLed  : String
+    Variable  : vCGSTLed  : String
+    Variable  : vSGSTLed  : String
+    Variable  : vIGSTLed  : String
+    Variable  : vCessLed  : String
+    Variable  : vROLed    : String
+    Variable  : vPtyGroup  : String
+    Variable  : vUseRO     : Logical
+    Variable  : vROIsDebit : Logical
+    Variable  : vTax       : Amount
+    Variable  : vTotal     : Amount
+    Variable  : vRounded   : Amount
+    Variable  : vRoundOff  : Amount
+    Variable  : vRate      : Number
+
+    ;; ---- read the configuration off the company ----
+    ;; Each value is fetched first and cleaned second: $$Function arguments are
+    ;; split on ":", so a method reference cannot be passed inline.
+    002 : SET : vCGSTLed  : $GSTR2BCGSTUDF:Company:##SVCurrentCompany
+    004 : SET : vCGSTLed  : $$Function:GSTR2BCleanCfg:##vCGSTLed
+    006 : SET : vSGSTLed  : $GSTR2BSGSTUDF:Company:##SVCurrentCompany
+    008 : SET : vSGSTLed  : $$Function:GSTR2BCleanCfg:##vSGSTLed
+    010 : SET : vIGSTLed  : $GSTR2BIGSTUDF:Company:##SVCurrentCompany
+    012 : SET : vIGSTLed  : $$Function:GSTR2BCleanCfg:##vIGSTLed
+    014 : SET : vCessLed  : $GSTR2BCessUDF:Company:##SVCurrentCompany
+    016 : SET : vCessLed  : $$Function:GSTR2BCleanCfg:##vCessLed
+    018 : SET : vROLed    : $GSTR2BROLedUDF:Company:##SVCurrentCompany
+    020 : SET : vROLed    : $$Function:GSTR2BCleanCfg:##vROLed
+    022 : SET : vPtyGroup : $GSTR2BPtyGrpUDF:Company:##SVCurrentCompany
+    024 : SET : vPtyGroup : $$Function:GSTR2BCleanCfg:##vPtyGroup
+    035 : SET : vUseRO    : $GSTR2BUseROUDF:Company:##SVCurrentCompany
+
+    ;; ---- the row has to carry enough data to make an entry ----
+    ;; A row that reads blank means a method name in STEP 5 did not match this
+    ;; build, so nothing is posted rather than an empty voucher.
+    040 : IF : $$IsEmpty:##pParty
+    045 :    RETURN : "SKIP: party name is blank on the row"
+    050 : ENDIF
+    055 : IF : $$IsEmpty:##pDocNo
+    060 :    RETURN : "SKIP: Doc No. is blank on the row"
+    065 : ENDIF
+    070 : IF : $$IsEmpty:##pDocDate
+    075 :    RETURN : "SKIP: Doc Date is blank on the row"
+    080 : ENDIF
+    085 : IF : ##pTaxable = 0 AND ##pCGST = 0 AND ##pSGST = 0 AND ##pIGST = 0
+    090 :    RETURN : "SKIP: no taxable value or tax read from the row (run a Dry Run to check the column mapping)"
+    095 : ENDIF
+    ;; Credit/debit notes need their own voucher type and are left alone.
+    096 : IF : ##pTaxable < 0 OR ##pCGST < 0 OR ##pSGST < 0 OR ##pIGST < 0
+    097 :    RETURN : "SKIP: negative amounts (credit/debit note) are not imported"
+    098 : ENDIF
+
+    ;; ---- party ----
+    100 : IF : NOT $$Function:GSTR2BLedgerExists:##pParty
+    105 :    IF : NOT $GSTR2BMakePtyUDF:Company:##SVCurrentCompany
+    110 :       RETURN : "SKIP: ledger '" + ##pParty + "' does not exist (set 'Create Missing Party Ledger' = Yes)"
+    115 :    ENDIF
+    120 :    IF : NOT $$Function:GSTR2BCreateParty:##pParty:##vPtyGroup
+    125 :       RETURN : "SKIP: could not create ledger '" + ##pParty + "'"
+    130 :    ENDIF
+    135 : ENDIF
+
+    ;; ---- GST rate -> rate-wise purchase ledger ----
+    140 : IF : ##pIGST > 0
+    145 :    SET : vTax : ##pIGST
+    150 : ELSE
+    155 :    SET : vTax : ##pCGST + ##pSGST
+    160 : ENDIF
+
+    165 : IF : ##pTaxable > 0
+    170 :    SET : vRate : (##vTax * 100) / ##pTaxable
+    175 : ELSE
+    180 :    SET : vRate : 0
+    185 : ENDIF
+
+    ;; Slab bands instead of an exact rate match, so paise-level rounding on the
+    ;; portal figures cannot push an invoice out of its slab.
+    190 : IF : ##vTax = 0
+    192 :    SET : vPurcLed : $GSTR2BExemptUDF:Company:##SVCurrentCompany
+    194 : ENDIF
+    196 : IF : ##vTax > 0 AND ##vRate <= 4
+    198 :    SET : vPurcLed : $GSTR2BPurc3UDF:Company:##SVCurrentCompany
+    200 : ENDIF
+    202 : IF : ##vRate > 4 AND ##vRate <= 8
+    204 :    SET : vPurcLed : $GSTR2BPurc5UDF:Company:##SVCurrentCompany
+    206 : ENDIF
+    208 : IF : ##vRate > 8 AND ##vRate <= 15
+    210 :    SET : vPurcLed : $GSTR2BPurc12UDF:Company:##SVCurrentCompany
+    212 : ENDIF
+    214 : IF : ##vRate > 15 AND ##vRate <= 23
+    216 :    SET : vPurcLed : $GSTR2BPurc18UDF:Company:##SVCurrentCompany
+    218 : ENDIF
+    220 : IF : ##vRate > 23
+    222 :    SET : vPurcLed : $GSTR2BPurc28UDF:Company:##SVCurrentCompany
+    224 : ENDIF
+    226 : SET : vPurcLed : $$Function:GSTR2BCleanCfg:##vPurcLed
+    ;; Only for the message below: the slab is already decided above.
+    228 : SET : vRate : $$Round:##vRate:1
+
+    230 : IF : $$IsEmpty:##vPurcLed
+    232 :    RETURN : "SKIP: no purchase ledger mapped for " + $$String:##vRate + "% GST"
+    234 : ENDIF
+    236 : IF : NOT $$Function:GSTR2BLedgerExists:##vPurcLed
+    238 :    RETURN : "SKIP: purchase ledger '" + ##vPurcLed + "' does not exist"
+    240 : ENDIF
+
+    ;; ---- tax ledgers have to be mapped for the taxes present on the row ----
+    242 : IF : ##pIGST > 0 AND $$IsEmpty:##vIGSTLed
+    244 :    RETURN : "SKIP: IGST on the invoice but no IGST ledger mapped"
+    246 : ENDIF
+    248 : IF : ##pCGST > 0 AND $$IsEmpty:##vCGSTLed
+    250 :    RETURN : "SKIP: CGST on the invoice but no CGST ledger mapped"
+    252 : ENDIF
+    254 : IF : ##pSGST > 0 AND $$IsEmpty:##vSGSTLed
+    256 :    RETURN : "SKIP: SGST on the invoice but no SGST ledger mapped"
+    258 : ENDIF
+    260 : IF : ##pCess > 0 AND $$IsEmpty:##vCessLed
+    262 :    RETURN : "SKIP: CESS on the invoice but no CESS ledger mapped"
+    264 : ENDIF
+
+    ;; ---- invoice total and optional round off ----
+    300 : SET : vTotal     : ##pTaxable + ##pCGST + ##pSGST + ##pIGST + ##pCess
+    305 : SET : vRounded   : ##vTotal
+    310 : SET : vRoundOff  : 0
+    315 : IF : ##vUseRO AND NOT $$IsEmpty:##vROLed
+    320 :    SET : vRounded  : $$Round:##vTotal:1
+    325 :    SET : vRoundOff : ##vRounded - ##vTotal
+    330 : ENDIF
+    335 : SET : vROIsDebit : ##vRoundOff > 0
+
+    ;; ---- the voucher ----
+    400 : NEW OBJECT : Voucher
+    405 : SET VALUE  : Date             : ##pDocDate
+    410 : SET VALUE  : VoucherTypeName  : ##pVchType
+    415 : SET VALUE  : VoucherNumber    : ##pDocNo
+    420 : SET VALUE  : Reference        : ##pDocNo
+    425 : SET VALUE  : ReferenceDate    : ##pDocDate
+    430 : SET VALUE  : PartyLedgerName  : ##pParty
+    435 : SET VALUE  : Persisted View   : $$SysName:AccountingVoucherView
+    440 : SET VALUE  : Narration        : "Imported from GSTR-2B (Available Only on Portal)"
+
+    ;; Dr purchase ledger with the taxable value
+    445 : INSERT COLLECTION OBJECT : AllLedgerEntries
+    450 : SET VALUE : LedgerName       : ##vPurcLed
+    455 : SET VALUE : IsDeemedPositive : Yes
+    460 : SET VALUE : Amount           : 0 - ##pTaxable
+    465 : SET TARGET : ..
+
+    ;; Dr CGST
+    470 : IF : ##pCGST > 0
+    475 :    INSERT COLLECTION OBJECT : AllLedgerEntries
+    480 :    SET VALUE : LedgerName       : ##vCGSTLed
+    485 :    SET VALUE : IsDeemedPositive : Yes
+    490 :    SET VALUE : Amount           : 0 - ##pCGST
+    495 :    SET TARGET : ..
+    500 : ENDIF
+
+    ;; Dr SGST
+    505 : IF : ##pSGST > 0
+    510 :    INSERT COLLECTION OBJECT : AllLedgerEntries
+    515 :    SET VALUE : LedgerName       : ##vSGSTLed
+    520 :    SET VALUE : IsDeemedPositive : Yes
+    525 :    SET VALUE : Amount           : 0 - ##pSGST
+    530 :    SET TARGET : ..
+    535 : ENDIF
+
+    ;; Dr IGST
+    540 : IF : ##pIGST > 0
+    545 :    INSERT COLLECTION OBJECT : AllLedgerEntries
+    550 :    SET VALUE : LedgerName       : ##vIGSTLed
+    555 :    SET VALUE : IsDeemedPositive : Yes
+    560 :    SET VALUE : Amount           : 0 - ##pIGST
+    565 :    SET TARGET : ..
+    570 : ENDIF
+
+    ;; Dr CESS
+    575 : IF : ##pCess > 0
+    580 :    INSERT COLLECTION OBJECT : AllLedgerEntries
+    585 :    SET VALUE : LedgerName       : ##vCessLed
+    590 :    SET VALUE : IsDeemedPositive : Yes
+    595 :    SET VALUE : Amount           : 0 - ##pCess
+    600 :    SET TARGET : ..
+    605 : ENDIF
+
+    ;; Dr/Cr round off
+    610 : IF : ##vRoundOff <> 0
+    615 :    INSERT COLLECTION OBJECT : AllLedgerEntries
+    620 :    SET VALUE : LedgerName       : ##vROLed
+    625 :    SET VALUE : IsDeemedPositive : ##vROIsDebit
+    630 :    SET VALUE : Amount           : 0 - ##vRoundOff
+    635 :    SET TARGET : ..
+    640 : ENDIF
+
+    ;; Cr party with the (rounded) invoice total
+    645 : INSERT COLLECTION OBJECT : AllLedgerEntries
+    650 : SET VALUE : LedgerName       : ##pParty
+    655 : SET VALUE : IsDeemedPositive : No
+    660 : SET VALUE : Amount           : ##vRounded
+    665 : IF : $IsBillWiseOn:Ledger:##pParty AND NOT $$IsEmpty:##pDocNo
+    670 :    INSERT COLLECTION OBJECT : BillAllocations
+    675 :    SET VALUE : Name     : ##pDocNo
+    680 :    SET VALUE : BillType : $$SysName:NewRef
+    685 :    SET VALUE : Amount   : ##vRounded
+    690 :    SET TARGET : ..
+    695 : ENDIF
+    700 : SET TARGET : ..
+
+    705 : SAVE TARGET
+
+    710 : RETURN : "OK"
+
+
+;;=============================================================================
+;;  STEP 8 - "Import Selected Vouchers"
+;;
+;;  Walks the rows selected with the Spacebar, reads each row with the STEP 5
+;;  formulas and hands them to GSTR2BPostVoucher. With "Dry Run" = Yes nothing
+;;  is written: the extracted values are shown so the mapping can be checked
+;;  against the screen before any voucher is created.
 ;;=============================================================================
 
 ;; Objects the user selected (Spacebar) on the current report.
@@ -378,35 +732,83 @@
 
     Variable : SelCount : Number
     Variable : vRow     : Number
+    Variable : vDone    : Number
+    Variable : vSkipped : Number
     Variable : vMsg     : String
+    Variable : vSkipMsg : String
+    Variable : vResult  : String
     Variable : vVchType : String
+    Variable : vParty   : String
+    Variable : vDocNo   : String
+    Variable : vDocDate : Date
+    Variable : vTaxable : Amount
+    Variable : vCGST    : Amount
+    Variable : vSGST    : Amount
+    Variable : vIGST    : Amount
+    Variable : vCess    : Amount
+    Variable : vDryRun  : Logical
 
-    01 : SET : SelCount : $$NumItems:GSTR2BSelectedRows
-    02 : SET : vVchType : $GSTR2BVchTypeUDF:Company:##SVCurrentCompany
+    001 : SET : SelCount : $$NumItems:GSTR2BSelectedRows
+    003 : SET : vVchType : $GSTR2BVchTypeUDF:Company:##SVCurrentCompany
+    005 : SET : vVchType : $$Function:GSTR2BCleanCfg:##vVchType
+    010 : SET : vDryRun  : $GSTR2BDryRunUDF:Company:##SVCurrentCompany
 
-    05 : IF : ##SelCount = 0
-    10 :    MSGBOX : "Import Selected Vouchers" : "No rows selected. In the 'Available Only on Portal' list, select one or more rows using the Spacebar, then click 'Import Selected Vouchers'."
-    15 :    RETURN
-    20 : ENDIF
+    015 : IF : ##SelCount = 0
+    020 :    MSGBOX : "Import Selected Vouchers" : "No rows selected. In the 'Available Only on Portal' list, select one or more rows using the Spacebar, then click 'Import Selected Vouchers'."
+    025 :    RETURN
+    030 : ENDIF
 
-    25 : IF : $$IsEmpty:##vVchType
-    30 :    MSGBOX : "Import Selected Vouchers" : "Please set the Purchase Voucher Type first via 'Import Configuration' (Alt+C) and save it with Ctrl+A."
-    35 :    RETURN
-    40 : ENDIF
+    035 : IF : $$IsEmpty:##vVchType
+    040 :    MSGBOX : "Import Selected Vouchers" : "Please set the Purchase Voucher Type first via 'Import Configuration' (Alt+C) and save it with Ctrl+A."
+    045 :    RETURN
+    050 : ENDIF
 
-    ;; ---- DRY RUN preview of the first few selected rows ----
-    45 : SET : vRow : 0
-    50 : SET : vMsg : "DRY RUN (no voucher posted). Voucher Type = '" + ##vVchType + "'. Values from " + $$String:##SelCount + " selected row(s):"
-    55 : WALK COLLECTION : GSTR2BSelectedRows
-    60 :    SET : vRow : ##vRow + 1
-    65 :    IF : ##vRow <= 5
-    70 :       SET : vMsg : ##vMsg + $$NewLine + $$NewLine + "Row " + $$String:##vRow + " -  Party: " + $PartyLedgerName + "  | Doc No: " + $DocumentNo + "  | Doc Date: " + $$String:$DocumentDate + "  | Taxable: " + $$String:$TaxableAmount + "  | CGST: " + $$String:$CGSTAmount + "  | SGST: " + $$String:$SGSTAmount + "  | IGST: " + $$String:$IGSTAmount
-    75 :    ENDIF
-    80 : END WALK
+    055 : SET : vRow     : 0
+    060 : SET : vDone    : 0
+    065 : SET : vSkipped : 0
+    070 : SET : vMsg     : ""
+    075 : SET : vSkipMsg : ""
 
-    85 : MSGBOX : "Import Selected Vouchers (Preview)" : ##vMsg
+    080 : WALK COLLECTION : GSTR2BSelectedRows
+    085 :    SET : vRow     : ##vRow + 1
+    090 :    SET : vParty   : @@GSTR2BRowParty
+    095 :    SET : vDocNo   : @@GSTR2BRowDocNo
+    100 :    SET : vDocDate : @@GSTR2BRowDocDate
+    105 :    SET : vTaxable : @@GSTR2BRowTaxable
+    110 :    SET : vCGST    : @@GSTR2BRowCGST
+    115 :    SET : vSGST    : @@GSTR2BRowSGST
+    120 :    SET : vIGST    : @@GSTR2BRowIGST
+    125 :    SET : vCess    : @@GSTR2BRowCess
 
-    RETURN
+    130 :    IF : ##vDryRun
+    135 :       IF : ##vRow <= 5
+    140 :          SET : vMsg : ##vMsg + $$NewLine + $$NewLine + "Row " + $$String:##vRow + " -  Party: " + ##vParty + "  | Doc No: " + ##vDocNo + "  | Doc Date: " + $$String:##vDocDate + "  | Taxable: " + $$String:##vTaxable + "  | CGST: " + $$String:##vCGST + "  | SGST: " + $$String:##vSGST + "  | IGST: " + $$String:##vIGST + "  | CESS: " + $$String:##vCess
+    145 :       ENDIF
+    150 :    ELSE
+    155 :       SET : vResult : $$Function:GSTR2BPostVoucher:##vVchType:##vParty:##vDocNo:##vDocDate:##vTaxable:##vCGST:##vSGST:##vIGST:##vCess
+    160 :       IF : ##vResult = "OK"
+    165 :          SET : vDone : ##vDone + 1
+    170 :       ELSE
+    175 :          SET : vSkipped : ##vSkipped + 1
+    180 :          IF : ##vSkipped <= 10
+    185 :             SET : vSkipMsg : ##vSkipMsg + $$NewLine + "Row " + $$String:##vRow + " (" + ##vDocNo + "): " + ##vResult
+    190 :          ENDIF
+    195 :       ENDIF
+    200 :    ENDIF
+    205 : END WALK
+
+    210 : IF : ##vDryRun
+    215 :    MSGBOX : "Import Selected Vouchers (Dry Run)" : "DRY RUN - no voucher was created. Voucher Type = '" + ##vVchType + "'. Values read from " + $$String:##SelCount + " selected row(s):" + ##vMsg + $$NewLine + $$NewLine + "Set 'Dry Run (Preview Only)' = No in Import Configuration to post these as purchase vouchers."
+    220 :    RETURN
+    225 : ENDIF
+
+    230 : SET : vMsg : $$String:##vDone + " purchase voucher(s) created with voucher type '" + ##vVchType + "'."
+    235 : IF : ##vSkipped > 0
+    240 :    SET : vMsg : ##vMsg + $$NewLine + $$String:##vSkipped + " row(s) skipped:" + ##vSkipMsg
+    245 : ENDIF
+    250 : MSGBOX : "Import Selected Vouchers" : ##vMsg
+
+    255 : RETURN
 
 ;;=============================================================================
 ;;  End of file
