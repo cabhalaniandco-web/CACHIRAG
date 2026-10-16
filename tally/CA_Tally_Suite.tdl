@@ -1,0 +1,16 @@
+;;=============================================================================
+;;  CA CHIRAG - Master TDL Suite for TallyPrime / Tally.ERP 9
+;;
+;;  This master file bundles all modules of the CA TDL Suite.
+;;  To load everything at once, simply load this single file in TallyPrime:
+;;    F1 (Help) -> TDL & Add-On -> F4 (Manage Local TDLs) -> Load CA_Tally_Suite.tdl
+;;=============================================================================
+
+[Include: GSTR2B_Portal_ImportButtons.tdl]
+[Include: CA_Audit_Utilities.tdl]
+[Include: Custom_Gateway_Menu.tdl]
+[Include: Voucher_Auto_Post.tdl]
+
+;;=============================================================================
+;;  End of Master TDL File
+;;=============================================================================

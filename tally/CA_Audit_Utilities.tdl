@@ -1,0 +1,97 @@
+;;=============================================================================
+;;  CA Audit & Accounting Utilities for TallyPrime
+;;
+;;  Features included:
+;;    1. Negative Cash Balance Warning in Payment / Voucher Entry
+;;    2. Party GSTIN & PAN Auto-Display in Voucher Entry
+;;    3. Auto Round-Off Helper for Invoices
+;;    4. Previous Ledger Balance Display on Invoice Printing
+;;
+;;  Language : Tally Definition Language (TDL)   |   Product : TallyPrime / Tally.ERP 9
+;;=============================================================================
+
+;;=============================================================================
+;;  MODULE 1: Negative Cash Balance Warning in Payment / Voucher Entry
+;;=============================================================================
+
+[System: Formula]
+    ;; Check if current ledger is under Cash-in-Hand group and closing balance is negative (Credit for Asset)
+    IsCashLedgerSelected : $$IsLedOfGroup:$LedgerName:"Cash-in-hand"
+    IsCashBalanceNegative : $ClosingBalance:Ledger:$LedgerName < 0
+
+[#Field: VCH Narration]
+    ;; Validate on accepting or leaving narration line
+    Validation : NotNegativeCash : "Warning: Selected Cash ledger has a NEGATIVE balance! Please verify physical cash before proceeding."
+
+[System: Formula]
+    NotNegativeCash : NOT ($$IsPayment AND @@IsCashBalanceNegative)
+
+
+;;=============================================================================
+;;  MODULE 2: Party GSTIN & PAN Auto-Display in Voucher Entry
+;;=============================================================================
+
+;; Modify Voucher Header to show party tax identity
+[#Line: EI ColumnOne]
+    Add : Right Field : At Beginning : CA PartyGSTINDisp
+    Add : Right Field : At Beginning : CA PartyPANDisp
+
+[Field: CA PartyGSTINDisp]
+    Set as     : "GSTIN: " + $$String:$PartyGSTIN:Ledger:$PartyLedgerName
+    Invisible  : $$IsEmpty:$PartyGSTIN:Ledger:$PartyLedgerName
+    Style      : Normal Bold
+    Color      : Blue
+    Width      : 25
+    Skip       : Yes
+
+[Field: CA PartyPANDisp]
+    Set as     : "PAN: " + $$String:$IncomeTaxNumber:Ledger:$PartyLedgerName
+    Invisible  : $$IsEmpty:$IncomeTaxNumber:Ledger:$PartyLedgerName
+    Style      : Normal Bold
+    Color      : Dark Green
+    Width      : 20
+    Skip       : Yes
+
+
+;;=============================================================================
+;;  MODULE 3: Auto Round-Off Helper
+;;=============================================================================
+
+[System: Formula]
+    ;; Computes fractional paise difference to nearest rupee
+    CARoundOffDiff : $$Round:($$Total:$Amount):1.00 - ($$Total:$Amount)
+
+[Function: CA ApplyAutoRoundOff]
+    Variable : vDiffAmt : Amount
+    01 : SET : vDiffAmt : @@CARoundOffDiff
+    05 : IF : NOT $$IsZero:##vDiffAmt
+    10 :    MSGBOX : "Auto Round Off" : "Calculated Round Off difference: " + $$String:##vDiffAmt
+    15 : ENDIF
+    20 : RETURN
+
+
+;;=============================================================================
+;;  MODULE 4: Previous Ledger Balance Display on Invoice Print
+;;=============================================================================
+
+[#Part: EXPINV Total]
+    Add : Line : After : EXPINV Total : CA InvPrevBalLine
+
+[Line: CA InvPrevBalLine]
+    Fields : CA InvPrevBalPrompt, CA InvPrevBalAmount
+    Border : Thin Top
+
+[Field: CA InvPrevBalPrompt]
+    Set as : "Previous Outstanding Balance: "
+    Width  : 30
+    Style  : Normal Bold
+
+[Field: CA InvPrevBalAmount]
+    Set as : $$String:$ClosingBalance:Ledger:$PartyLedgerName
+    Width  : 20
+    Style  : Normal Bold
+    Align  : Right
+
+;;=============================================================================
+;;  End of file
+;;=============================================================================

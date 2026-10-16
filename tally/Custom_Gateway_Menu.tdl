@@ -1,0 +1,34 @@
+;;=============================================================================
+;;  Custom Gateway of Tally Menu for CA Audit & GST Utilities
+;;
+;;  Adds a quick-access menu item directly on Gateway of Tally for
+;;  frequent Chartered Accountant and tax reconciliation workflows.
+;;
+;;  Language : Tally Definition Language (TDL)   |   Product : TallyPrime / Tally.ERP 9
+;;=============================================================================
+
+;;=============================================================================
+;;  Attach CA Menu to Gateway of Tally
+;;=============================================================================
+
+[#Menu: Gateway of Tally]
+    Add : Key Item : Before : @@locQuit : "CA Audit & GST Tools" : A : Menu : CA Tools Menu
+
+;;=============================================================================
+;;  CA Audit & GST Tools Sub-Menu Definition
+;;=============================================================================
+
+[Menu: CA Tools Menu]
+    Title : "CA Audit & Tax Utilities"
+
+    Key Item : "GSTR-2B Reconciliation"       : R : Display : GSTR2B Recon Returns
+    Key Item : "GSTR-3B Summary Report"       : G : Display : GSTR 3B Summary
+    Key Item : "GSTR-1 Return View"           : 1 : Display : GSTR 1 Summary
+    Key Item : "Cash & Bank Summary / Audit"  : C : Display : Cash / Bank Summary
+    Key Item : "Trial Balance"                : T : Display : Trial Balance
+    Key Item : "Outstanding Receivables"      : O : Display : Bills Outstanding
+    Key Item : "GSTR-2B Import Configuration" : I : Alter   : GSTR2B Import Config
+
+;;=============================================================================
+;;  End of file
+;;=============================================================================

@@ -1,0 +1,158 @@
+;;=============================================================================
+;;  Programmatic Voucher Posting & Master Creation Functions in TDL
+;;
+;;  Provides reusable TDL functions demonstrating how to create and post
+;;  balanced vouchers (Purchase, Journal, Payment) directly into Tally's database.
+;;
+;;  Language : Tally Definition Language (TDL)   |   Product : TallyPrime / Tally.ERP 9
+;;=============================================================================
+
+;;=============================================================================
+;;  FUNCTION 1: Create Simple Journal Voucher
+;;=============================================================================
+
+[Function: CA PostJournalVoucher]
+    ;; Parameters: Date, DrLedger, CrLedger, Amount, Narration
+    Parameter : pDate      : Date
+    Parameter : pDrLedger  : String
+    Parameter : pCrLedger  : String
+    Parameter : pAmount    : Amount
+    Parameter : pNarration : String
+
+    Variable  : vStatus    : Logical
+
+    ;; Initialize voucher object
+    01 : NEW OBJECT : Voucher
+    02 : SET VALUE  : Date         : ##pDate
+    03 : SET VALUE  : VoucherTypeName : "Journal"
+    04 : SET VALUE  : Narration    : ##pNarration
+
+    ;; Debit Ledger Entry
+    05 : INSERT COLLECTION OBJECT : AllLedgerEntries
+    06 : SET VALUE  : LedgerName   : ##pDrLedger
+    07 : SET VALUE  : IsDeemedPositive : Yes
+    08 : SET VALUE  : Amount       : -##pAmount
+    09 : SET TARGET : ..
+
+    ;; Credit Ledger Entry
+    10 : INSERT COLLECTION OBJECT : AllLedgerEntries
+    11 : SET VALUE  : LedgerName   : ##pCrLedger
+    12 : SET VALUE  : IsDeemedPositive : No
+    13 : SET VALUE  : Amount       : ##pAmount
+    14 : SET TARGET : ..
+
+    ;; Save to database
+    15 : CREATE TARGET
+    16 : SET : vStatus : $$LastResult
+    17 : IF : ##vStatus
+    18 :    MSGBOX : "Success" : "Journal voucher created successfully!"
+    19 : ELSE
+    20 :    MSGBOX : "Error" : "Failed to create journal voucher. Please check ledger names and date."
+    21 : ENDIF
+
+    22 : RETURN : ##vStatus
+
+
+;;=============================================================================
+;;  FUNCTION 2: Create Purchase Voucher with GST Split
+;;=============================================================================
+
+[Function: CA PostPurchaseVoucher]
+    Parameter : pDate          : Date
+    Parameter : pSupplierInvNo : String
+    Parameter : pPartyName     : String
+    Parameter : pPurcLedger    : String
+    Parameter : pTaxableAmt    : Amount
+    Parameter : pCGSTAmt       : Amount
+    Parameter : pSGSTAmt       : Amount
+    Parameter : pIGSTAmt       : Amount
+    Parameter : pCGSTLedger    : String
+    Parameter : pSGSTLedger    : String
+    Parameter : pIGSTLedger    : String
+
+    Variable  : vTotalAmt      : Amount
+    Variable  : vStatus        : Logical
+
+    01 : SET : vTotalAmt : ##pTaxableAmt + ##pCGSTAmt + ##pSGSTAmt + ##pIGSTAmt
+
+    02 : NEW OBJECT : Voucher
+    03 : SET VALUE  : Date            : ##pDate
+    04 : SET VALUE  : VoucherTypeName : "Purchase"
+    05 : SET VALUE  : Reference       : ##pSupplierInvNo
+    06 : SET VALUE  : Narration       : "GSTR-2B Auto Imported Invoice " + ##pSupplierInvNo
+
+    ;; Party (Supplier) Credit entry
+    07 : INSERT COLLECTION OBJECT : AllLedgerEntries
+    08 : SET VALUE  : LedgerName      : ##pPartyName
+    09 : SET VALUE  : IsDeemedPositive : No
+    10 : SET VALUE  : Amount          : ##vTotalAmt
+    11 : SET TARGET : ..
+
+    ;; Purchase Account Debit entry
+    12 : INSERT COLLECTION OBJECT : AllLedgerEntries
+    13 : SET VALUE  : LedgerName      : ##pPurcLedger
+    14 : SET VALUE  : IsDeemedPositive : Yes
+    15 : SET VALUE  : Amount          : -##pTaxableAmt
+    16 : SET TARGET : ..
+
+    ;; CGST Debit entry (if applicable)
+    17 : IF : ##pCGSTAmt > 0
+    18 :    INSERT COLLECTION OBJECT : AllLedgerEntries
+    19 :    SET VALUE : LedgerName      : ##pCGSTLedger
+    20 :    SET VALUE : IsDeemedPositive : Yes
+    21 :    SET VALUE : Amount          : -##pCGSTAmt
+    22 :    SET TARGET : ..
+    23 : ENDIF
+
+    ;; SGST Debit entry (if applicable)
+    24 : IF : ##pSGSTAmt > 0
+    25 :    INSERT COLLECTION OBJECT : AllLedgerEntries
+    26 :    SET VALUE : LedgerName      : ##pSGSTLedger
+    27 :    SET VALUE : IsDeemedPositive : Yes
+    28 :    SET VALUE : Amount          : -##pSGSTAmt
+    29 :    SET TARGET : ..
+    30 : ENDIF
+
+    ;; IGST Debit entry (if applicable)
+    31 : IF : ##pIGSTAmt > 0
+    32 :    INSERT COLLECTION OBJECT : AllLedgerEntries
+    33 :    SET VALUE : LedgerName      : ##pIGSTLedger
+    34 :    SET VALUE : IsDeemedPositive : Yes
+    35 :    SET VALUE : Amount          : -##pIGSTAmt
+    36 :    SET TARGET : ..
+    37 : ENDIF
+
+    ;; Save voucher
+    38 : CREATE TARGET
+    39 : SET : vStatus : $$LastResult
+
+    40 : RETURN : ##vStatus
+
+
+;;=============================================================================
+;;  FUNCTION 3: Auto-Create Sundry Creditor Master if Not Found
+;;=============================================================================
+
+[Function: CA EnsurePartyLedgerExists]
+    Parameter : pPartyName : String
+    Parameter : pGSTIN     : String
+    Parameter : pState     : String
+
+    Variable  : vExists    : Logical
+
+    01 : SET : vExists : $$IsLedger:##pPartyName
+    02 : IF : NOT ##vExists
+    03 :    NEW OBJECT : Ledger
+    04 :    SET VALUE  : Name          : ##pPartyName
+    05 :    SET VALUE  : Parent        : "Sundry Creditors"
+    06 :    SET VALUE  : GSTRegistrationType : "Regular"
+    07 :    SET VALUE  : PartyGSTIN    : ##pGSTIN
+    08 :    SET VALUE  : StateName     : ##pState
+    09 :    CREATE TARGET
+    10 : ENDIF
+
+    11 : RETURN : $$IsLedger:##pPartyName
+
+;;=============================================================================
+;;  End of file
+;;=============================================================================
