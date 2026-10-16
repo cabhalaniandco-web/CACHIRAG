@@ -1,0 +1,55 @@
+;;=============================================================================
+;;  Fixture for tools/test_tdl_lint.py - every definition here is wrong on
+;;  purpose. Each marked defect must be reported by tools/tdl_lint.py.
+;;  This file is NOT meant to be loaded into Tally.
+;;=============================================================================
+
+[System: UDF]
+    SampleGoodUDF : String : 20001
+    SampleDupUDF  : String : 20001          ;; defect: index reused
+    SampleLowUDF  : String : 101            ;; defect: outside 20001-59999
+
+[System: Formula]
+    SampleFilter : $Name = "x"
+
+[Report: Sample Report]
+    Form : Sample Missing Form                ;; defect: form never defined
+
+[Form: Sample Form]
+    Parts : Sample Part
+
+[Part: Sample Part]
+    Lines : Sample Line, Sample Missing Line  ;; defect: second line undefined
+
+[Line: Sample Line]
+    Fields : Sample Field, Sample Missing Field  ;; defect: second field undefined
+
+[Field: Sample Field]
+    Use     : Name Field
+    Table   : Sample Missing Collection, Not Applicable  ;; defect: collection undefined
+    Storage : SampleUndeclaredUDF                        ;; defect: UDF not declared
+    Set as  : $SampleAlsoUndeclaredUDF                   ;; defect: UDF not declared
+
+[Collection: Sample Collection]
+    Type   : Ledger
+    Filter : SampleMissingFilter              ;; defect: no [System: Formula] entry
+
+[Button: Sample Button]
+    Key    : Alt+Z
+    Title  : "Sample"
+    Action : Call : Sample Missing Function   ;; defect: function undefined
+
+[Function: Sample Broken Function]
+    Variable : vDeclared : String
+
+    10 : SET : vDeclared : @@SampleMissingFormula   ;; defect: formula undefined
+    20 : SET : vUndeclared : "x"                    ;; defect: target not declared
+    15 : SET : vDeclared : ##vAlsoUndeclared        ;; defects: step order + variable
+    30 : IF : ##vDeclared = "x"
+    40 : ELSE IF : ##vDeclared = "y"                ;; defect: ELSE takes no condition
+    50 : SET : vDeclared : $$Function:Sample Broken Function:1  ;; defect: spaced name
+    52 : SET : vDeclared : $$Function:SampleGood:$SampleGoodUDF:Company:##SVCurrentCompany  ;; defect: inline method
+    60 : NEW OBJECT : Ledger
+    70 : INSERT COLLECTION OBJECT : LedgerEntries   ;; defect: never left with SET TARGET : ..
+    80 : SET VALUE : Name : "x"
+                                                    ;; defect: IF block never closed
