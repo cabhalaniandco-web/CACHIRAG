@@ -1,79 +1,116 @@
-# GSTR-2B "Available only on Portal" — custom import buttons (TDL)
+# GSTR-2B "Available Only on Portal" — import buttons (TDL)
 
-`GSTR2B_Portal_ImportButtons.tdl` adds two buttons to the right-hand button bar
-of the **GSTR-2B Reconciliation** report in TallyPrime:
+`GSTR2B_Portal_ImportButtons.tdl` is a TallyPrime add-on that puts two buttons in
+the right-hand button bar of the GSTR-2B Reconciliation voucher list:
 
-- **Import Configuration** (`Alt+C`) — opens a small screen to set the purchase
-  voucher type, the default purchase ledger, and whether to auto-create missing
-  masters.
-- **Import Selected Vouchers** (`Alt+V`) — creates purchase vouchers from the
-  rows you select (Spacebar) in the *Available only on Portal* section.
+- **Import Configuration** (`Alt+C`) — the mapping screen: voucher types,
+  rate-wise purchase ledgers, single CGST/SGST/IGST/CESS ledgers, round off, and
+  how to treat a party that does not exist yet. Saved on the company with
+  `Ctrl+A`, so it survives a restart.
+- **Import Selected Vouchers** (`Alt+V`) — creates one purchase voucher per row
+  selected with the Spacebar.
 
 Path in Tally: `Gateway of Tally → Display More Reports → Statutory Reports →
-GST Reports → GSTR-2B Reconciliation → Available only on Portal`.
+GST Reports → GSTR-2B Reconciliation → Available Only on Portal`.
 
-## 1. Form name
+## What a row becomes
 
-STEP 1 in the `.tdl` is already set to **`GSTR Recon DrillDown`**, the internal
-form of the GSTR-2B Reconciliation "Available Only on Portal" voucher list
-(confirmed via Developer Mode). Because this DrillDown form is shared by the
-reconciliation voucher lists, the two buttons will also appear on the other
-drill-down voucher screens (e.g. mismatches, available only in books). If a
-future TallyPrime release renames the form and you get
-`T0008: Could not find the default TDL definition of Form: GSTR Recon DrillDown`,
-re-confirm the name with Developer Mode as below and update STEP 1.
+For every selected row the add-on posts, in the voucher type chosen in the
+configuration:
 
-### How to re-confirm the Form name (Developer Mode)
+| Entry | Ledger | Amount |
+| --- | --- | --- |
+| Dr | the rate-wise purchase ledger for the invoice's GST slab | Taxable Value |
+| Dr | CGST and SGST, or IGST | the tax on the row |
+| Dr | CESS, when the row carries it | CESS |
+| Dr/Cr | the round off ledger, when round off is enabled | the paise difference |
+| Cr | the party from *Particulars* | invoice total |
 
-TDL attaches buttons to a report by its internal **Form name**, which Tally does
-not publish and which can change between releases. Confirm it on your build using
-Developer Mode:
+Voucher No. and the voucher's reference come from **Doc No.**, the voucher date
+from **Doc Date**. The GST slab is derived from the tax on the row
+(`tax ÷ taxable value`) and matched to the 3 / 5 / 12 / 18 / 28% bands, so paise
+rounding on the portal figures cannot push an invoice out of its slab. A row
+with a taxable value and no tax uses the **Purchase Exempted Ledger**. Parties
+with bill-wise details enabled get a `New Reference` for the Doc No.
 
-1. Close TallyPrime.
-2. Right-click the TallyPrime shortcut → **Properties**.
-3. In **Target**, append ` /DevMode`, e.g.
-   `"C:\Program Files\TallyPrime\tally.exe" /DevMode`
-4. Apply and open TallyPrime.
-5. Open the GSTR-2B Reconciliation → *Available only on Portal* view.
-6. Hover the mouse over an **empty area** (not on a field). The tooltip shows the
-   current Report/Form name.
-7. Put that name in the `[#Form: ...]` line marked **STEP 1** in the `.tdl` file
-   and remove the leading `;;` from those three lines to activate them.
+Only purchase invoices are posted. A row with negative amounts (a credit or
+debit note on the portal) is skipped: it needs the Dr./Cr. Note voucher type,
+which the configuration already stores but the importer does not use yet.
 
-> **Important:** `[#Form: <name>]` *modifies an existing* form. If `<name>` is not
-> a real form, Tally aborts loading with `T0008: Could not find the default TDL
-> definition of Form: <name>`. That's why **STEP 1 ships commented out** — the
-> file loads with no error, but the buttons only appear after you fill in the
-> real name and uncomment those three lines.
+A row is **skipped, never half-posted**. The summary message names every skipped
+row with its reason — a blank column, a ledger that is not mapped, a slab with
+no ledger, or a party that does not exist while *Create Missing Party Ledger* is
+`No`.
 
-## 2. Load the TDL
+## Install
 
-TallyPrime: `F1 (Help) → TDL & Add-On → F4 (Manage Local TDLs)` → set
-*Load selected TDL files on startup* = **Yes**, add the full path to
+TallyPrime: `F1 (Help) → TDL & Add-On → F4 (Manage Local TDLs)` → set *Load
+selected TDL files on startup* = **Yes**, add the full path to
 `GSTR2B_Portal_ImportButtons.tdl`, accept, and restart TallyPrime.
 
-## 3. Verify
+## First run: dry run first
 
-1. Open the GSTR-2B Reconciliation → *Available only on Portal* view.
-2. Confirm **Import Configuration** and **Import Selected Vouchers** appear in the
-   right button bar (and respond to `Alt+C` / `Alt+V`).
-3. Click **Import Configuration**, set a Default Purchase Ledger, save (`Ctrl+A`).
-4. Select one or more rows with the **Spacebar**, click **Import Selected
-   Vouchers**, and confirm the summary message reports the correct count and your
-   configured ledger/voucher type.
+1. Open the GSTR-2B Reconciliation → *Available Only on Portal* view and confirm
+   **Import Configuration** and **Import Selected Vouchers** are in the right
+   button bar.
+2. `Alt+C`, fill in the mapping, set **Dry Run (Preview Only)** = `Yes`, save with
+   `Ctrl+A`. Anything that does not apply can be left as **Not Applicable** — the
+   add-on keeps that choice and never substitutes a default.
+3. Select a couple of rows with the Spacebar and press `Alt+V`. The preview lists
+   what was read from each row: Party, Doc No, Doc Date, Taxable, CGST, SGST,
+   IGST, CESS.
+4. If every column is right, set **Dry Run** = `No` and import. The summary
+   reports how many vouchers were created and why any row was skipped.
+5. Check the result in `Display More Reports → Account Books → Purchase Register`.
 
-## 4. Finish the importer
+### If a column reads blank in the dry run
 
-The button + configuration + selection wiring is complete and testable. The
-per-row **voucher creation** block in **STEP 5** of the `.tdl` is a documented
-skeleton: the source field names of the GSTR-2B rows (supplier GSTIN, invoice
-number, date, taxable value, IGST/CGST/SGST, …) are internal and build-specific.
-Hover each column in Developer Mode to read its field name, then complete the
-`SET VALUE ...` lines marked `TODO`.
+The drill-down rows are internal Tally objects and their method names are not
+published, so **STEP 5** of the `.tdl` reads each value through a chain of
+candidate methods and takes the first that returns something. A column that
+comes out blank means none of the candidates matched this TallyPrime build. Find
+the real name with Developer Mode and add it to that chain:
 
-## Testing note
+1. Close TallyPrime, right-click the shortcut → **Properties**, and append
+   ` /DevMode` to **Target**, e.g. `"C:\Program Files\TallyPrime\tally.exe" /DevMode`.
+2. Reopen the *Available Only on Portal* list and hover the column. The tooltip
+   shows the field name behind it.
+3. Add the corresponding method to the front of the matching `GSTR2BRow...`
+   formula in STEP 5.
 
-TDL executes only inside Tally (proprietary Windows software), which cannot run
-on this Linux environment, so this add-on was authored and reviewed for correct
-TDL structure but not executed here. Use the steps in section 3 to verify it in
-your TallyPrime installation.
+## Form name
+
+STEP 1 attaches the buttons to the form **`GSTR Recon DrillDown`**, confirmed via
+Developer Mode on the "Available Only on Portal" voucher list. That DrillDown
+form is shared by the reconciliation voucher lists, so the buttons also appear on
+the other drill-down voucher screens.
+
+`[#Form: <name>]` *modifies an existing* form, so if a future release renames it
+Tally aborts the load with `T0008: Could not find the default TDL definition of
+Form: GSTR Recon DrillDown`. Re-confirm the name the same way — hover an **empty
+area** of the list, not a field — and update STEP 1.
+
+## Checks that run outside Tally
+
+TDL only executes inside Tally, which is Windows-only proprietary software and
+cannot run in this repository's CI. Two checks therefore run against the `.tdl`
+source itself:
+
+```bash
+python3 tools/test_tdl_lint.py        # structural checks + the linter's own tests
+python3 tools/test_gstr2b_import.py   # executes the add-on's functions
+```
+
+`tools/tdl_lint.py` resolves every Part/Line/Field/Button/Form/Report/Collection/
+Function reference, every `Storage` target and `$...UDF` method, every
+`@@formula`, and checks that function step numbers ascend and that IF/ELSE/ENDIF,
+WALK, and INSERT COLLECTION OBJECT are balanced — the mistakes Tally reports as
+a load abort or a "Bad formula".
+
+`tools/tdl_sim.py` parses the real `.tdl` and runs its functions against an
+in-memory stand-in for Tally's object model, so the accounting behaviour is
+asserted directly from the shipped file: slab-to-ledger mapping, debits equal to
+credits, round off, bill allocation, and every skip reason.
+
+Neither replaces running the add-on in TallyPrime. Use the dry run above for
+that.
