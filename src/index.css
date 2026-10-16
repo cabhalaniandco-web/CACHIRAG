@@ -1,0 +1,74 @@
+:root {
+  color-scheme: light;
+  --paper: #f3efe6;
+  --paper-raised: #faf7f0;
+  --rule: #d9d0bf;
+  --ink: #1f1a14;
+  --ink-muted: #6f665c;
+  --accent: #9a3412;
+  --accent-soft: #f3e0d4;
+  --danger: #9f1239;
+  --high: #9a3412;
+  --medium: #92640a;
+  --low: #3f6212;
+  --shadow: 0 12px 40px rgba(31, 26, 20, 0.08);
+  --focus: 0 0 0 3px rgba(154, 52, 18, 0.28);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  line-height: 1.45;
+  font-weight: 450;
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    linear-gradient(180deg, rgba(243, 239, 230, 0.2), rgba(243, 239, 230, 1) 280px),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 27px,
+      rgba(217, 208, 191, 0.35) 28px
+    ),
+    var(--paper);
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
